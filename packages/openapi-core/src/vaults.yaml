@@ -1,0 +1,165 @@
+openapi: 3.1.0
+info:
+  title: Vaults API
+  version: 0.1.0
+  description: |
+    Off-chain identity vault registry bound 1:1 to on-chain pseudonyms.
+    Orphan/duplicate detection for governed re-identification keys (BR-1).
+  license:
+    name: Proprietary
+    url: https://aliaskeep.local/license
+  x-domain: vlt
+servers:
+  - url: https://api.aliaskeep.local
+    description: Local / starter API
+security:
+  - bearerAuth: []
+  - apiKey: []
+tags:
+  - name: Vaults
+    description: Identity vault registry and pseudonym binding
+paths:
+  /v1/vaults:
+    get:
+      operationId: listIdentityVaults
+      tags: [Vaults]
+      summary: List identity vaults
+      parameters:
+        - $ref: ./common/parameters.yaml#/components/parameters/Cursor
+        - $ref: ./common/parameters.yaml#/components/parameters/Limit
+        - name: consortiumId
+          in: query
+          schema:
+            $ref: ./common/primitives.yaml#/components/schemas/ConsortiumId
+        - name: status
+          in: query
+          schema:
+            type: string
+            enum: [active, erased, orphan_review, duplicate_review]
+      responses:
+        '200':
+          description: Vaults page
+          content:
+            application/json:
+              schema:
+                $ref: ./vaults.schemas.yaml#/components/schemas/IdentityVaultListResponse
+        '401':
+          $ref: ./common/responses.yaml#/components/responses/Unauthorized
+        default:
+          $ref: ./common/responses.yaml#/components/responses/Problem
+    post:
+      operationId: createIdentityVault
+      tags: [Vaults]
+      summary: Register an off-chain identity vault
+      parameters:
+        - $ref: ./common/parameters.yaml#/components/parameters/IdempotencyKey
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: ./vaults.schemas.yaml#/components/schemas/IdentityVaultCreateRequest
+      responses:
+        '201':
+          description: Vault registered
+          content:
+            application/json:
+              schema:
+                $ref: ./vaults.schemas.yaml#/components/schemas/IdentityVaultResponse
+        '400':
+          $ref: ./common/responses.yaml#/components/responses/BadRequest
+        '401':
+          $ref: ./common/responses.yaml#/components/responses/Unauthorized
+        '409':
+          $ref: ./common/responses.yaml#/components/responses/Conflict
+        default:
+          $ref: ./common/responses.yaml#/components/responses/Problem
+
+  /v1/vaults/{vaultId}:
+    get:
+      operationId: getIdentityVault
+      tags: [Vaults]
+      summary: Get vault by id
+      parameters:
+        - $ref: ./common/parameters.yaml#/components/parameters/VaultIdPath
+      responses:
+        '200':
+          description: Vault
+          content:
+            application/json:
+              schema:
+                $ref: ./vaults.schemas.yaml#/components/schemas/IdentityVaultResponse
+        '401':
+          $ref: ./common/responses.yaml#/components/responses/Unauthorized
+        '404':
+          $ref: ./common/responses.yaml#/components/responses/NotFound
+        default:
+          $ref: ./common/responses.yaml#/components/responses/Problem
+
+  /v1/vaults/{vaultId}/bind-pseudonym:
+    post:
+      operationId: bindVaultPseudonym
+      tags: [Vaults]
+      summary: Bind or re-bind on-chain pseudonym (1:1)
+      parameters:
+        - $ref: ./common/parameters.yaml#/components/parameters/VaultIdPath
+        - $ref: ./common/parameters.yaml#/components/parameters/IdempotencyKey
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: ./vaults.schemas.yaml#/components/schemas/BindPseudonymRequest
+      responses:
+        '200':
+          description: Pseudonym bound
+          content:
+            application/json:
+              schema:
+                $ref: ./vaults.schemas.yaml#/components/schemas/IdentityVaultResponse
+        '400':
+          $ref: ./common/responses.yaml#/components/responses/BadRequest
+        '401':
+          $ref: ./common/responses.yaml#/components/responses/Unauthorized
+        '404':
+          $ref: ./common/responses.yaml#/components/responses/NotFound
+        '409':
+          $ref: ./common/responses.yaml#/components/responses/Conflict
+        default:
+          $ref: ./common/responses.yaml#/components/responses/Problem
+
+  /v1/vaults/{vaultId}/flag-duplicate:
+    post:
+      operationId: flagVaultDuplicate
+      tags: [Vaults]
+      summary: Flag vault for duplicate/orphan merge review
+      parameters:
+        - $ref: ./common/parameters.yaml#/components/parameters/VaultIdPath
+        - $ref: ./common/parameters.yaml#/components/parameters/IdempotencyKey
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: ./vaults.schemas.yaml#/components/schemas/FlagDuplicateRequest
+      responses:
+        '200':
+          description: Flagged for review
+          content:
+            application/json:
+              schema:
+                $ref: ./vaults.schemas.yaml#/components/schemas/IdentityVaultResponse
+        '401':
+          $ref: ./common/responses.yaml#/components/responses/Unauthorized
+        '404':
+          $ref: ./common/responses.yaml#/components/responses/NotFound
+        default:
+          $ref: ./common/responses.yaml#/components/responses/Problem
+
+components:
+  securitySchemes:
+    apiKey:
+      $ref: ./common/security.yaml#/components/securitySchemes/apiKey
+    bearerAuth:
+      $ref: ./common/security.yaml#/components/securitySchemes/bearerAuth
+

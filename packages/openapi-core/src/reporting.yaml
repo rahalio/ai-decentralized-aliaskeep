@@ -1,0 +1,145 @@
+openapi: 3.1.0
+info:
+  title: Reporting API
+  version: 0.1.0
+  description: |
+    Link audit exports and counsel regulatory packs (BR-8).
+  license:
+    name: Proprietary
+    url: https://aliaskeep.local/license
+  x-domain: rpt
+servers:
+  - url: https://api.aliaskeep.local
+security:
+  - bearerAuth: []
+  - apiKey: []
+tags:
+  - name: Reporting
+    description: Audit and counsel exports
+paths:
+  /v1/reports/link-audit:
+    get:
+      operationId: getLinkAuditReport
+      tags: [Reporting]
+      summary: Synchronous link governance audit summary
+      parameters:
+        - name: period
+          in: query
+          schema:
+            type: string
+            description: ISO period or preset (e.g. 2026-Q1, last_30d)
+        - name: consortiumId
+          in: query
+          schema:
+            $ref: ./common/primitives.yaml#/components/schemas/ConsortiumId
+        - name: pseudonymId
+          in: query
+          schema:
+            $ref: ./common/primitives.yaml#/components/schemas/PseudonymId
+      responses:
+        '200':
+          description: Audit summary
+          content:
+            application/json:
+              schema:
+                $ref: ./reporting.schemas.yaml#/components/schemas/LinkAuditReportResponse
+        '401':
+          $ref: ./common/responses.yaml#/components/responses/Unauthorized
+        default:
+          $ref: ./common/responses.yaml#/components/responses/Problem
+
+  /v1/reports/export-jobs:
+    get:
+      operationId: listReportExportJobs
+      tags: [Reporting]
+      summary: List counsel / GRC export jobs
+      parameters:
+        - $ref: ./common/parameters.yaml#/components/parameters/Cursor
+        - $ref: ./common/parameters.yaml#/components/parameters/Limit
+      responses:
+        '200':
+          description: Jobs page
+          content:
+            application/json:
+              schema:
+                $ref: ./reporting.schemas.yaml#/components/schemas/ReportJobListResponse
+        '401':
+          $ref: ./common/responses.yaml#/components/responses/Unauthorized
+        default:
+          $ref: ./common/responses.yaml#/components/responses/Problem
+    post:
+      operationId: createReportExportJob
+      tags: [Reporting]
+      summary: Create machine-readable counsel pack export
+      parameters:
+        - $ref: ./common/parameters.yaml#/components/parameters/IdempotencyKey
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: ./reporting.schemas.yaml#/components/schemas/ReportExportCreateRequest
+      responses:
+        '202':
+          description: Job queued
+          content:
+            application/json:
+              schema:
+                $ref: ./reporting.schemas.yaml#/components/schemas/ReportJobResponse
+        '400':
+          $ref: ./common/responses.yaml#/components/responses/BadRequest
+        '401':
+          $ref: ./common/responses.yaml#/components/responses/Unauthorized
+        default:
+          $ref: ./common/responses.yaml#/components/responses/Problem
+
+  /v1/reports/export-jobs/{jobId}:
+    get:
+      operationId: getReportExportJob
+      tags: [Reporting]
+      summary: Get export job status and download URL when ready
+      parameters:
+        - $ref: ./common/parameters.yaml#/components/parameters/ReportJobIdPath
+      responses:
+        '200':
+          description: Job
+          content:
+            application/json:
+              schema:
+                $ref: ./reporting.schemas.yaml#/components/schemas/ReportJobResponse
+        '401':
+          $ref: ./common/responses.yaml#/components/responses/Unauthorized
+        '404':
+          $ref: ./common/responses.yaml#/components/responses/NotFound
+        default:
+          $ref: ./common/responses.yaml#/components/responses/Problem
+
+  /v1/reports/home-summary:
+    get:
+      operationId: getArchitectHomeSummary
+      tags: [Reporting]
+      summary: Privacy architect home KPIs (live links, SLA, quarantine, Fabric risk)
+      parameters:
+        - name: consortiumId
+          in: query
+          schema:
+            $ref: ./common/primitives.yaml#/components/schemas/ConsortiumId
+      responses:
+        '200':
+          description: Home summary
+          content:
+            application/json:
+              schema:
+                $ref: ./reporting.schemas.yaml#/components/schemas/ArchitectHomeSummaryResponse
+        '401':
+          $ref: ./common/responses.yaml#/components/responses/Unauthorized
+        default:
+          $ref: ./common/responses.yaml#/components/responses/Problem
+
+components:
+  securitySchemes:
+    apiKey:
+      $ref: ./common/security.yaml#/components/securitySchemes/apiKey
+    bearerAuth:
+      $ref: ./common/security.yaml#/components/securitySchemes/bearerAuth
+

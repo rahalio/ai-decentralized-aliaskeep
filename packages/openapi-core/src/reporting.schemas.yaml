@@ -1,0 +1,141 @@
+openapi: 3.1.0
+info:
+  title: Reporting schemas
+  version: 0.1.0
+paths: {}
+components:
+  schemas:
+    LinkAuditReport:
+      type: object
+      required: [period, activeGrants, erasuresCompleted, quarantinedScans]
+      properties:
+        period:
+          type: string
+        activeGrants:
+          type: integer
+          minimum: 0
+        erasuresCompleted:
+          type: integer
+          minimum: 0
+        quarantinedScans:
+          type: integer
+          minimum: 0
+        suspendedGrants:
+          type: integer
+          minimum: 0
+        recreationAttemptsBlocked:
+          type: integer
+          minimum: 0
+
+    ReportExportCreateRequest:
+      type: object
+      required: [packType]
+      properties:
+        packType:
+          type: string
+          enum: [counsel_pack, link_audit, erasure_certificates]
+        period:
+          type: string
+        consortiumId:
+          $ref: ./common/primitives.yaml#/components/schemas/ConsortiumId
+        pseudonymId:
+          $ref: ./common/primitives.yaml#/components/schemas/PseudonymId
+
+    ReportJob:
+      type: object
+      required: [jobId, packType, status, createdAt]
+      properties:
+        jobId:
+          $ref: ./common/primitives.yaml#/components/schemas/ReportJobId
+        packType:
+          type: string
+        status:
+          $ref: ./common/primitives.yaml#/components/schemas/JobStatus
+        downloadUrl:
+          type: string
+          format: uri
+        errorMessage:
+          type: string
+        createdAt:
+          type: string
+          format: date-time
+        completedAt:
+          type: string
+          format: date-time
+
+    ArchitectHomeSummary:
+      type: object
+      required: [liveLinkCount, vaultCount, erasureInFlight, quarantineBacklog, fabricRiskOpen]
+      properties:
+        liveLinkCount:
+          type: integer
+        vaultCount:
+          type: integer
+        erasureInFlight:
+          type: integer
+        erasureSlaAtRisk:
+          type: integer
+        quarantineBacklog:
+          type: integer
+        fabricRiskOpen:
+          type: integer
+        alerts:
+          type: array
+          items:
+            type: object
+            required: [severity, message]
+            properties:
+              severity:
+                type: string
+                enum: [info, amber, coral]
+              message:
+                type: string
+              href:
+                type: string
+
+    LinkAuditReportResponse:
+      type: object
+      required: [data]
+      properties:
+        data:
+          $ref: '#/components/schemas/LinkAuditReport'
+        meta:
+          $ref: ./common/envelopes.yaml#/components/schemas/ResponseMeta
+
+    ReportJobResponse:
+      type: object
+      required: [data]
+      properties:
+        data:
+          $ref: '#/components/schemas/ReportJob'
+        meta:
+          $ref: ./common/envelopes.yaml#/components/schemas/ResponseMeta
+
+    ReportJobListData:
+      type: object
+      required: [items]
+      properties:
+        items:
+          type: array
+          items:
+            $ref: '#/components/schemas/ReportJob'
+        nextCursor:
+          type: string
+
+    ReportJobListResponse:
+      type: object
+      required: [data]
+      properties:
+        data:
+          $ref: '#/components/schemas/ReportJobListData'
+        meta:
+          $ref: ./common/envelopes.yaml#/components/schemas/ResponseMeta
+
+    ArchitectHomeSummaryResponse:
+      type: object
+      required: [data]
+      properties:
+        data:
+          $ref: '#/components/schemas/ArchitectHomeSummary'
+        meta:
+          $ref: ./common/envelopes.yaml#/components/schemas/ResponseMeta

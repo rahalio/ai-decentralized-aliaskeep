@@ -1,0 +1,111 @@
+openapi: 3.1.0
+info:
+  title: Fabric schemas
+  version: 0.1.0
+paths: {}
+components:
+  schemas:
+    FabricRiskLevel:
+      type: string
+      enum: [clear, warn, block]
+
+    RecommendedPath:
+      type: string
+      enum: [x509_scrubbed, identity_mixer, blocked]
+
+    AttributeRisk:
+      type: object
+      required: [attributeName, riskLevel]
+      properties:
+        attributeName:
+          type: string
+        riskLevel:
+          $ref: '#/components/schemas/FabricRiskLevel'
+        reason:
+          type: string
+
+    FabricIdentityProfile:
+      type: object
+      required: [profileId, participantId, riskLevel, recommendedPath, status, createdAt]
+      properties:
+        profileId:
+          $ref: ./common/primitives.yaml#/components/schemas/FabricProfileId
+        participantId:
+          $ref: ./common/primitives.yaml#/components/schemas/ParticipantId
+        mspId:
+          type: string
+        riskLevel:
+          $ref: '#/components/schemas/FabricRiskLevel'
+        recommendedPath:
+          $ref: '#/components/schemas/RecommendedPath'
+        attributes:
+          type: array
+          items:
+            $ref: '#/components/schemas/AttributeRisk'
+        status:
+          type: string
+          enum: [open, path_required, cleared, blocked]
+        createdAt:
+          type: string
+          format: date-time
+        updatedAt:
+          type: string
+          format: date-time
+
+    FabricEnrollmentScanRequest:
+      type: object
+      required: [participantId, attributes]
+      properties:
+        participantId:
+          $ref: ./common/primitives.yaml#/components/schemas/ParticipantId
+        mspId:
+          type: string
+        attributes:
+          type: array
+          items:
+            type: object
+            required: [attributeName, valueHint]
+            properties:
+              attributeName:
+                type: string
+              valueHint:
+                type: string
+                description: Non-secret hint / pattern for PD detection (not raw PD dump).
+
+    RequireFabricPathRequest:
+      type: object
+      required: [requiredPath]
+      properties:
+        requiredPath:
+          $ref: '#/components/schemas/RecommendedPath'
+        note:
+          type: string
+
+    FabricProfileResponse:
+      type: object
+      required: [data]
+      properties:
+        data:
+          $ref: '#/components/schemas/FabricIdentityProfile'
+        meta:
+          $ref: ./common/envelopes.yaml#/components/schemas/ResponseMeta
+
+    FabricProfileListData:
+      type: object
+      required: [items]
+      properties:
+        items:
+          type: array
+          items:
+            $ref: '#/components/schemas/FabricIdentityProfile'
+        nextCursor:
+          type: string
+
+    FabricProfileListResponse:
+      type: object
+      required: [data]
+      properties:
+        data:
+          $ref: '#/components/schemas/FabricProfileListData'
+        meta:
+          $ref: ./common/envelopes.yaml#/components/schemas/ResponseMeta

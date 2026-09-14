@@ -1,0 +1,25 @@
+---
+description: Never commit or push .codegen — local zero-codegen tooling only
+globs:
+  - .codegen/**/*
+alwaysApply: true
+---
+
+# `.codegen` must never be committed or pushed
+
+- The `.codegen/` directory (zero-codegen Python tool, merged config, teaching examples) is **local-only**.
+- It is listed in `.gitignore`. Do **not** `git add` it, force-add it, or push it to GitHub.
+- OpenAPI source of truth remains in `packages/openapi-core/` (committed).
+- To rehydrate after clone:
+
+```bash
+rsync -a --delete \
+  /Users/nrahal/@code/zero-apps/zero-apps-codegen-scaffold/.codegen/ \
+  ./.codegen/
+# then re-apply @aliaskeep package_scope and product domains in:
+#   .codegen/zero-codegen.json
+#   .codegen/.zero-codegen-merged.json
+pnpm codegen:paths
+```
+
+- Skill: `.cursor/skills/aliaskeep-codegen-local/SKILL.md`

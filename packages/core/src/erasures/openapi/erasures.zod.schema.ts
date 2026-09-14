@@ -1,0 +1,1036 @@
+import { makeApi, Zodios, type ZodiosOptions } from '@zodios/core';
+import { z } from 'zod';
+
+const executeLogicalErasure_Body = z
+  .object({
+    vaultId: z.string().regex(/^vlt_[0-9A-HJKMNP-TV-Z]{26}$/),
+    erasureReason: z.string().min(1).max(1000),
+    notifyParticipants: z.boolean().optional().default(true),
+  })
+  .passthrough();
+const nudgeErasurePropagation_Body = z
+  .object({
+    participantId: z.string().regex(/^prt_[0-9A-HJKMNP-TV-Z]{26}$/),
+    message: z.string().optional(),
+  })
+  .passthrough();
+const Problem = z
+  .object({
+    type: z.string().url(),
+    title: z.string(),
+    status: z.number().int(),
+    detail: z.string(),
+    instance: z.string().url(),
+    code: z.string(),
+  })
+  .partial()
+  .passthrough();
+const ErasureId = z.string();
+const VaultId = z.string();
+const PseudonymId = z.string();
+const CertificateId = z.string();
+const LogicalErasureStatus = z.enum([
+  'queued',
+  'in_progress',
+  'completed',
+  'failed',
+  'sla_breach',
+]);
+const ParticipantId = z.string();
+const HolderAck = z
+  .object({
+    participantId: z.string().regex(/^prt_[0-9A-HJKMNP-TV-Z]{26}$/),
+    status: z.enum(['pending', 'acknowledged', 'failed', 'recreation_blocked']),
+    acknowledgedAt: z.string().datetime({ offset: true }).optional(),
+    lastNudgedAt: z.string().datetime({ offset: true }).optional(),
+  })
+  .passthrough();
+const LogicalErasure = z
+  .object({
+    erasureId: z.string().regex(/^ers_[0-9A-HJKMNP-TV-Z]{26}$/),
+    vaultId: z.string().regex(/^vlt_[0-9A-HJKMNP-TV-Z]{26}$/),
+    pseudonymId: z
+      .string()
+      .regex(/^psn_[0-9A-HJKMNP-TV-Z]{26}$/)
+      .optional(),
+    certificateId: z
+      .string()
+      .regex(/^crt_[0-9A-HJKMNP-TV-Z]{26}$/)
+      .optional(),
+    status: z.enum([
+      'queued',
+      'in_progress',
+      'completed',
+      'failed',
+      'sla_breach',
+    ]),
+    erasureReason: z.string(),
+    holders: z
+      .array(
+        z
+          .object({
+            participantId: z.string().regex(/^prt_[0-9A-HJKMNP-TV-Z]{26}$/),
+            status: z.enum([
+              'pending',
+              'acknowledged',
+              'failed',
+              'recreation_blocked',
+            ]),
+            acknowledgedAt: z.string().datetime({ offset: true }).optional(),
+            lastNudgedAt: z.string().datetime({ offset: true }).optional(),
+          })
+          .passthrough()
+      )
+      .optional(),
+    slaDeadlineAt: z.string().datetime({ offset: true }).optional(),
+    createdAt: z.string().datetime({ offset: true }),
+    completedAt: z.string().datetime({ offset: true }).optional(),
+  })
+  .passthrough();
+const LogicalErasureListData = z
+  .object({
+    items: z.array(
+      z
+        .object({
+          erasureId: z.string().regex(/^ers_[0-9A-HJKMNP-TV-Z]{26}$/),
+          vaultId: z.string().regex(/^vlt_[0-9A-HJKMNP-TV-Z]{26}$/),
+          pseudonymId: z
+            .string()
+            .regex(/^psn_[0-9A-HJKMNP-TV-Z]{26}$/)
+            .optional(),
+          certificateId: z
+            .string()
+            .regex(/^crt_[0-9A-HJKMNP-TV-Z]{26}$/)
+            .optional(),
+          status: z.enum([
+            'queued',
+            'in_progress',
+            'completed',
+            'failed',
+            'sla_breach',
+          ]),
+          erasureReason: z.string(),
+          holders: z
+            .array(
+              z
+                .object({
+                  participantId: z
+                    .string()
+                    .regex(/^prt_[0-9A-HJKMNP-TV-Z]{26}$/),
+                  status: z.enum([
+                    'pending',
+                    'acknowledged',
+                    'failed',
+                    'recreation_blocked',
+                  ]),
+                  acknowledgedAt: z
+                    .string()
+                    .datetime({ offset: true })
+                    .optional(),
+                  lastNudgedAt: z
+                    .string()
+                    .datetime({ offset: true })
+                    .optional(),
+                })
+                .passthrough()
+            )
+            .optional(),
+          slaDeadlineAt: z.string().datetime({ offset: true }).optional(),
+          createdAt: z.string().datetime({ offset: true }),
+          completedAt: z.string().datetime({ offset: true }).optional(),
+        })
+        .passthrough()
+    ),
+    nextCursor: z.string().optional(),
+  })
+  .passthrough();
+const ResponseMeta = z
+  .object({
+    requestId: z.string().uuid(),
+    correlationId: z.string(),
+    generatedAt: z.string().datetime({ offset: true }),
+  })
+  .partial()
+  .passthrough();
+const LogicalErasureListResponse = z
+  .object({
+    data: z
+      .object({
+        items: z.array(
+          z
+            .object({
+              erasureId: z.string().regex(/^ers_[0-9A-HJKMNP-TV-Z]{26}$/),
+              vaultId: z.string().regex(/^vlt_[0-9A-HJKMNP-TV-Z]{26}$/),
+              pseudonymId: z
+                .string()
+                .regex(/^psn_[0-9A-HJKMNP-TV-Z]{26}$/)
+                .optional(),
+              certificateId: z
+                .string()
+                .regex(/^crt_[0-9A-HJKMNP-TV-Z]{26}$/)
+                .optional(),
+              status: z.enum([
+                'queued',
+                'in_progress',
+                'completed',
+                'failed',
+                'sla_breach',
+              ]),
+              erasureReason: z.string(),
+              holders: z
+                .array(
+                  z
+                    .object({
+                      participantId: z
+                        .string()
+                        .regex(/^prt_[0-9A-HJKMNP-TV-Z]{26}$/),
+                      status: z.enum([
+                        'pending',
+                        'acknowledged',
+                        'failed',
+                        'recreation_blocked',
+                      ]),
+                      acknowledgedAt: z
+                        .string()
+                        .datetime({ offset: true })
+                        .optional(),
+                      lastNudgedAt: z
+                        .string()
+                        .datetime({ offset: true })
+                        .optional(),
+                    })
+                    .passthrough()
+                )
+                .optional(),
+              slaDeadlineAt: z.string().datetime({ offset: true }).optional(),
+              createdAt: z.string().datetime({ offset: true }),
+              completedAt: z.string().datetime({ offset: true }).optional(),
+            })
+            .passthrough()
+        ),
+        nextCursor: z.string().optional(),
+      })
+      .passthrough(),
+    meta: z
+      .object({
+        requestId: z.string().uuid(),
+        correlationId: z.string(),
+        generatedAt: z.string().datetime({ offset: true }),
+      })
+      .partial()
+      .passthrough()
+      .optional(),
+  })
+  .passthrough();
+const LogicalErasureRequest = z
+  .object({
+    vaultId: z.string().regex(/^vlt_[0-9A-HJKMNP-TV-Z]{26}$/),
+    erasureReason: z.string().min(1).max(1000),
+    notifyParticipants: z.boolean().optional().default(true),
+  })
+  .passthrough();
+const LogicalErasureResponse = z
+  .object({
+    data: z
+      .object({
+        erasureId: z.string().regex(/^ers_[0-9A-HJKMNP-TV-Z]{26}$/),
+        vaultId: z.string().regex(/^vlt_[0-9A-HJKMNP-TV-Z]{26}$/),
+        pseudonymId: z
+          .string()
+          .regex(/^psn_[0-9A-HJKMNP-TV-Z]{26}$/)
+          .optional(),
+        certificateId: z
+          .string()
+          .regex(/^crt_[0-9A-HJKMNP-TV-Z]{26}$/)
+          .optional(),
+        status: z.enum([
+          'queued',
+          'in_progress',
+          'completed',
+          'failed',
+          'sla_breach',
+        ]),
+        erasureReason: z.string(),
+        holders: z
+          .array(
+            z
+              .object({
+                participantId: z.string().regex(/^prt_[0-9A-HJKMNP-TV-Z]{26}$/),
+                status: z.enum([
+                  'pending',
+                  'acknowledged',
+                  'failed',
+                  'recreation_blocked',
+                ]),
+                acknowledgedAt: z
+                  .string()
+                  .datetime({ offset: true })
+                  .optional(),
+                lastNudgedAt: z.string().datetime({ offset: true }).optional(),
+              })
+              .passthrough()
+          )
+          .optional(),
+        slaDeadlineAt: z.string().datetime({ offset: true }).optional(),
+        createdAt: z.string().datetime({ offset: true }),
+        completedAt: z.string().datetime({ offset: true }).optional(),
+      })
+      .passthrough(),
+    meta: z
+      .object({
+        requestId: z.string().uuid(),
+        correlationId: z.string(),
+        generatedAt: z.string().datetime({ offset: true }),
+      })
+      .partial()
+      .passthrough()
+      .optional(),
+  })
+  .passthrough();
+const ErasureCertificate = z
+  .object({
+    certificateId: z.string().regex(/^crt_[0-9A-HJKMNP-TV-Z]{26}$/),
+    erasureId: z
+      .string()
+      .regex(/^ers_[0-9A-HJKMNP-TV-Z]{26}$/)
+      .optional(),
+    vaultId: z.string().regex(/^vlt_[0-9A-HJKMNP-TV-Z]{26}$/),
+    pseudonymId: z
+      .string()
+      .regex(/^psn_[0-9A-HJKMNP-TV-Z]{26}$/)
+      .optional(),
+    anonymisedAt: z.string().datetime({ offset: true }),
+    proofHash: z.string(),
+    recreationBlocked: z.boolean().optional(),
+  })
+  .passthrough();
+const ErasureCertificateResponse = z
+  .object({
+    data: z
+      .object({
+        certificateId: z.string().regex(/^crt_[0-9A-HJKMNP-TV-Z]{26}$/),
+        erasureId: z
+          .string()
+          .regex(/^ers_[0-9A-HJKMNP-TV-Z]{26}$/)
+          .optional(),
+        vaultId: z.string().regex(/^vlt_[0-9A-HJKMNP-TV-Z]{26}$/),
+        pseudonymId: z
+          .string()
+          .regex(/^psn_[0-9A-HJKMNP-TV-Z]{26}$/)
+          .optional(),
+        anonymisedAt: z.string().datetime({ offset: true }),
+        proofHash: z.string(),
+        recreationBlocked: z.boolean().optional(),
+      })
+      .passthrough(),
+    meta: z
+      .object({
+        requestId: z.string().uuid(),
+        correlationId: z.string(),
+        generatedAt: z.string().datetime({ offset: true }),
+      })
+      .partial()
+      .passthrough()
+      .optional(),
+  })
+  .passthrough();
+const PropagationStatus = z
+  .object({
+    erasureId: z.string().regex(/^ers_[0-9A-HJKMNP-TV-Z]{26}$/),
+    slaDeadlineAt: z.string().datetime({ offset: true }),
+    slaBreached: z.boolean().optional(),
+    holders: z.array(
+      z
+        .object({
+          participantId: z.string().regex(/^prt_[0-9A-HJKMNP-TV-Z]{26}$/),
+          status: z.enum([
+            'pending',
+            'acknowledged',
+            'failed',
+            'recreation_blocked',
+          ]),
+          acknowledgedAt: z.string().datetime({ offset: true }).optional(),
+          lastNudgedAt: z.string().datetime({ offset: true }).optional(),
+        })
+        .passthrough()
+    ),
+    recreationAttempts: z.number().int().gte(0).optional(),
+  })
+  .passthrough();
+const PropagationStatusResponse = z
+  .object({
+    data: z
+      .object({
+        erasureId: z.string().regex(/^ers_[0-9A-HJKMNP-TV-Z]{26}$/),
+        slaDeadlineAt: z.string().datetime({ offset: true }),
+        slaBreached: z.boolean().optional(),
+        holders: z.array(
+          z
+            .object({
+              participantId: z.string().regex(/^prt_[0-9A-HJKMNP-TV-Z]{26}$/),
+              status: z.enum([
+                'pending',
+                'acknowledged',
+                'failed',
+                'recreation_blocked',
+              ]),
+              acknowledgedAt: z.string().datetime({ offset: true }).optional(),
+              lastNudgedAt: z.string().datetime({ offset: true }).optional(),
+            })
+            .passthrough()
+        ),
+        recreationAttempts: z.number().int().gte(0).optional(),
+      })
+      .passthrough(),
+    meta: z
+      .object({
+        requestId: z.string().uuid(),
+        correlationId: z.string(),
+        generatedAt: z.string().datetime({ offset: true }),
+      })
+      .partial()
+      .passthrough()
+      .optional(),
+  })
+  .passthrough();
+const NudgePropagationRequest = z
+  .object({
+    participantId: z.string().regex(/^prt_[0-9A-HJKMNP-TV-Z]{26}$/),
+    message: z.string().optional(),
+  })
+  .passthrough();
+
+export const schemas: any = {
+  executeLogicalErasure_Body,
+  nudgeErasurePropagation_Body,
+  Problem,
+  ErasureId,
+  VaultId,
+  PseudonymId,
+  CertificateId,
+  LogicalErasureStatus,
+  ParticipantId,
+  HolderAck,
+  LogicalErasure,
+  LogicalErasureListData,
+  ResponseMeta,
+  LogicalErasureListResponse,
+  LogicalErasureRequest,
+  LogicalErasureResponse,
+  ErasureCertificate,
+  ErasureCertificateResponse,
+  PropagationStatus,
+  PropagationStatusResponse,
+  NudgePropagationRequest,
+};
+
+const endpoints = makeApi([
+  {
+    method: 'get',
+    path: '/v1/erasure-certificates/:certificateId',
+    alias: 'getErasureCertificate',
+    requestFormat: 'json',
+    parameters: [
+      {
+        name: 'certificateId',
+        type: 'Path',
+        schema: z.string().regex(/^crt_[0-9A-HJKMNP-TV-Z]{26}$/),
+      },
+    ],
+    response: z
+      .object({
+        data: z
+          .object({
+            certificateId: z.string().regex(/^crt_[0-9A-HJKMNP-TV-Z]{26}$/),
+            erasureId: z
+              .string()
+              .regex(/^ers_[0-9A-HJKMNP-TV-Z]{26}$/)
+              .optional(),
+            vaultId: z.string().regex(/^vlt_[0-9A-HJKMNP-TV-Z]{26}$/),
+            pseudonymId: z
+              .string()
+              .regex(/^psn_[0-9A-HJKMNP-TV-Z]{26}$/)
+              .optional(),
+            anonymisedAt: z.string().datetime({ offset: true }),
+            proofHash: z.string(),
+            recreationBlocked: z.boolean().optional(),
+          })
+          .passthrough(),
+        meta: z
+          .object({
+            requestId: z.string().uuid(),
+            correlationId: z.string(),
+            generatedAt: z.string().datetime({ offset: true }),
+          })
+          .partial()
+          .passthrough()
+          .optional(),
+      })
+      .passthrough(),
+    errors: [
+      {
+        status: 401,
+        description: `Missing or invalid API key`,
+        schema: z
+          .object({
+            type: z.string().url(),
+            title: z.string(),
+            status: z.number().int(),
+            detail: z.string(),
+            instance: z.string().url(),
+            code: z.string(),
+          })
+          .partial()
+          .passthrough(),
+      },
+      {
+        status: 404,
+        description: `Resource not found`,
+        schema: z
+          .object({
+            type: z.string().url(),
+            title: z.string(),
+            status: z.number().int(),
+            detail: z.string(),
+            instance: z.string().url(),
+            code: z.string(),
+          })
+          .partial()
+          .passthrough(),
+      },
+    ],
+  },
+  {
+    method: 'get',
+    path: '/v1/erasures',
+    alias: 'listLogicalErasures',
+    requestFormat: 'json',
+    parameters: [
+      {
+        name: 'cursor',
+        type: 'Query',
+        schema: z.string().optional(),
+      },
+      {
+        name: 'limit',
+        type: 'Query',
+        schema: z.number().int().gte(1).lte(200).optional().default(50),
+      },
+      {
+        name: 'status',
+        type: 'Query',
+        schema: z
+          .enum(['queued', 'in_progress', 'completed', 'failed', 'sla_breach'])
+          .optional(),
+      },
+    ],
+    response: z
+      .object({
+        data: z
+          .object({
+            items: z.array(
+              z
+                .object({
+                  erasureId: z.string().regex(/^ers_[0-9A-HJKMNP-TV-Z]{26}$/),
+                  vaultId: z.string().regex(/^vlt_[0-9A-HJKMNP-TV-Z]{26}$/),
+                  pseudonymId: z
+                    .string()
+                    .regex(/^psn_[0-9A-HJKMNP-TV-Z]{26}$/)
+                    .optional(),
+                  certificateId: z
+                    .string()
+                    .regex(/^crt_[0-9A-HJKMNP-TV-Z]{26}$/)
+                    .optional(),
+                  status: z.enum([
+                    'queued',
+                    'in_progress',
+                    'completed',
+                    'failed',
+                    'sla_breach',
+                  ]),
+                  erasureReason: z.string(),
+                  holders: z
+                    .array(
+                      z
+                        .object({
+                          participantId: z
+                            .string()
+                            .regex(/^prt_[0-9A-HJKMNP-TV-Z]{26}$/),
+                          status: z.enum([
+                            'pending',
+                            'acknowledged',
+                            'failed',
+                            'recreation_blocked',
+                          ]),
+                          acknowledgedAt: z
+                            .string()
+                            .datetime({ offset: true })
+                            .optional(),
+                          lastNudgedAt: z
+                            .string()
+                            .datetime({ offset: true })
+                            .optional(),
+                        })
+                        .passthrough()
+                    )
+                    .optional(),
+                  slaDeadlineAt: z
+                    .string()
+                    .datetime({ offset: true })
+                    .optional(),
+                  createdAt: z.string().datetime({ offset: true }),
+                  completedAt: z.string().datetime({ offset: true }).optional(),
+                })
+                .passthrough()
+            ),
+            nextCursor: z.string().optional(),
+          })
+          .passthrough(),
+        meta: z
+          .object({
+            requestId: z.string().uuid(),
+            correlationId: z.string(),
+            generatedAt: z.string().datetime({ offset: true }),
+          })
+          .partial()
+          .passthrough()
+          .optional(),
+      })
+      .passthrough(),
+    errors: [
+      {
+        status: 401,
+        description: `Missing or invalid API key`,
+        schema: z
+          .object({
+            type: z.string().url(),
+            title: z.string(),
+            status: z.number().int(),
+            detail: z.string(),
+            instance: z.string().url(),
+            code: z.string(),
+          })
+          .partial()
+          .passthrough(),
+      },
+    ],
+  },
+  {
+    method: 'post',
+    path: '/v1/erasures',
+    alias: 'executeLogicalErasure',
+    requestFormat: 'json',
+    parameters: [
+      {
+        name: 'body',
+        type: 'Body',
+        schema: executeLogicalErasure_Body,
+      },
+      {
+        name: 'Idempotency-Key',
+        type: 'Header',
+        schema: z.string().min(1).max(128),
+      },
+    ],
+    response: z
+      .object({
+        data: z
+          .object({
+            erasureId: z.string().regex(/^ers_[0-9A-HJKMNP-TV-Z]{26}$/),
+            vaultId: z.string().regex(/^vlt_[0-9A-HJKMNP-TV-Z]{26}$/),
+            pseudonymId: z
+              .string()
+              .regex(/^psn_[0-9A-HJKMNP-TV-Z]{26}$/)
+              .optional(),
+            certificateId: z
+              .string()
+              .regex(/^crt_[0-9A-HJKMNP-TV-Z]{26}$/)
+              .optional(),
+            status: z.enum([
+              'queued',
+              'in_progress',
+              'completed',
+              'failed',
+              'sla_breach',
+            ]),
+            erasureReason: z.string(),
+            holders: z
+              .array(
+                z
+                  .object({
+                    participantId: z
+                      .string()
+                      .regex(/^prt_[0-9A-HJKMNP-TV-Z]{26}$/),
+                    status: z.enum([
+                      'pending',
+                      'acknowledged',
+                      'failed',
+                      'recreation_blocked',
+                    ]),
+                    acknowledgedAt: z
+                      .string()
+                      .datetime({ offset: true })
+                      .optional(),
+                    lastNudgedAt: z
+                      .string()
+                      .datetime({ offset: true })
+                      .optional(),
+                  })
+                  .passthrough()
+              )
+              .optional(),
+            slaDeadlineAt: z.string().datetime({ offset: true }).optional(),
+            createdAt: z.string().datetime({ offset: true }),
+            completedAt: z.string().datetime({ offset: true }).optional(),
+          })
+          .passthrough(),
+        meta: z
+          .object({
+            requestId: z.string().uuid(),
+            correlationId: z.string(),
+            generatedAt: z.string().datetime({ offset: true }),
+          })
+          .partial()
+          .passthrough()
+          .optional(),
+      })
+      .passthrough(),
+    errors: [
+      {
+        status: 400,
+        description: `Malformed request`,
+        schema: z
+          .object({
+            type: z.string().url(),
+            title: z.string(),
+            status: z.number().int(),
+            detail: z.string(),
+            instance: z.string().url(),
+            code: z.string(),
+          })
+          .partial()
+          .passthrough(),
+      },
+      {
+        status: 401,
+        description: `Missing or invalid API key`,
+        schema: z
+          .object({
+            type: z.string().url(),
+            title: z.string(),
+            status: z.number().int(),
+            detail: z.string(),
+            instance: z.string().url(),
+            code: z.string(),
+          })
+          .partial()
+          .passthrough(),
+      },
+    ],
+  },
+  {
+    method: 'get',
+    path: '/v1/erasures/:erasureId',
+    alias: 'getLogicalErasure',
+    requestFormat: 'json',
+    parameters: [
+      {
+        name: 'erasureId',
+        type: 'Path',
+        schema: z.string().regex(/^ers_[0-9A-HJKMNP-TV-Z]{26}$/),
+      },
+    ],
+    response: z
+      .object({
+        data: z
+          .object({
+            erasureId: z.string().regex(/^ers_[0-9A-HJKMNP-TV-Z]{26}$/),
+            vaultId: z.string().regex(/^vlt_[0-9A-HJKMNP-TV-Z]{26}$/),
+            pseudonymId: z
+              .string()
+              .regex(/^psn_[0-9A-HJKMNP-TV-Z]{26}$/)
+              .optional(),
+            certificateId: z
+              .string()
+              .regex(/^crt_[0-9A-HJKMNP-TV-Z]{26}$/)
+              .optional(),
+            status: z.enum([
+              'queued',
+              'in_progress',
+              'completed',
+              'failed',
+              'sla_breach',
+            ]),
+            erasureReason: z.string(),
+            holders: z
+              .array(
+                z
+                  .object({
+                    participantId: z
+                      .string()
+                      .regex(/^prt_[0-9A-HJKMNP-TV-Z]{26}$/),
+                    status: z.enum([
+                      'pending',
+                      'acknowledged',
+                      'failed',
+                      'recreation_blocked',
+                    ]),
+                    acknowledgedAt: z
+                      .string()
+                      .datetime({ offset: true })
+                      .optional(),
+                    lastNudgedAt: z
+                      .string()
+                      .datetime({ offset: true })
+                      .optional(),
+                  })
+                  .passthrough()
+              )
+              .optional(),
+            slaDeadlineAt: z.string().datetime({ offset: true }).optional(),
+            createdAt: z.string().datetime({ offset: true }),
+            completedAt: z.string().datetime({ offset: true }).optional(),
+          })
+          .passthrough(),
+        meta: z
+          .object({
+            requestId: z.string().uuid(),
+            correlationId: z.string(),
+            generatedAt: z.string().datetime({ offset: true }),
+          })
+          .partial()
+          .passthrough()
+          .optional(),
+      })
+      .passthrough(),
+    errors: [
+      {
+        status: 401,
+        description: `Missing or invalid API key`,
+        schema: z
+          .object({
+            type: z.string().url(),
+            title: z.string(),
+            status: z.number().int(),
+            detail: z.string(),
+            instance: z.string().url(),
+            code: z.string(),
+          })
+          .partial()
+          .passthrough(),
+      },
+      {
+        status: 404,
+        description: `Resource not found`,
+        schema: z
+          .object({
+            type: z.string().url(),
+            title: z.string(),
+            status: z.number().int(),
+            detail: z.string(),
+            instance: z.string().url(),
+            code: z.string(),
+          })
+          .partial()
+          .passthrough(),
+      },
+    ],
+  },
+  {
+    method: 'get',
+    path: '/v1/erasures/:erasureId/propagation',
+    alias: 'getErasurePropagation',
+    requestFormat: 'json',
+    parameters: [
+      {
+        name: 'erasureId',
+        type: 'Path',
+        schema: z.string().regex(/^ers_[0-9A-HJKMNP-TV-Z]{26}$/),
+      },
+    ],
+    response: z
+      .object({
+        data: z
+          .object({
+            erasureId: z.string().regex(/^ers_[0-9A-HJKMNP-TV-Z]{26}$/),
+            slaDeadlineAt: z.string().datetime({ offset: true }),
+            slaBreached: z.boolean().optional(),
+            holders: z.array(
+              z
+                .object({
+                  participantId: z
+                    .string()
+                    .regex(/^prt_[0-9A-HJKMNP-TV-Z]{26}$/),
+                  status: z.enum([
+                    'pending',
+                    'acknowledged',
+                    'failed',
+                    'recreation_blocked',
+                  ]),
+                  acknowledgedAt: z
+                    .string()
+                    .datetime({ offset: true })
+                    .optional(),
+                  lastNudgedAt: z
+                    .string()
+                    .datetime({ offset: true })
+                    .optional(),
+                })
+                .passthrough()
+            ),
+            recreationAttempts: z.number().int().gte(0).optional(),
+          })
+          .passthrough(),
+        meta: z
+          .object({
+            requestId: z.string().uuid(),
+            correlationId: z.string(),
+            generatedAt: z.string().datetime({ offset: true }),
+          })
+          .partial()
+          .passthrough()
+          .optional(),
+      })
+      .passthrough(),
+    errors: [
+      {
+        status: 401,
+        description: `Missing or invalid API key`,
+        schema: z
+          .object({
+            type: z.string().url(),
+            title: z.string(),
+            status: z.number().int(),
+            detail: z.string(),
+            instance: z.string().url(),
+            code: z.string(),
+          })
+          .partial()
+          .passthrough(),
+      },
+      {
+        status: 404,
+        description: `Resource not found`,
+        schema: z
+          .object({
+            type: z.string().url(),
+            title: z.string(),
+            status: z.number().int(),
+            detail: z.string(),
+            instance: z.string().url(),
+            code: z.string(),
+          })
+          .partial()
+          .passthrough(),
+      },
+    ],
+  },
+  {
+    method: 'post',
+    path: '/v1/erasures/:erasureId/propagation/nudge',
+    alias: 'nudgeErasurePropagation',
+    requestFormat: 'json',
+    parameters: [
+      {
+        name: 'body',
+        type: 'Body',
+        schema: nudgeErasurePropagation_Body,
+      },
+      {
+        name: 'erasureId',
+        type: 'Path',
+        schema: z.string().regex(/^ers_[0-9A-HJKMNP-TV-Z]{26}$/),
+      },
+      {
+        name: 'Idempotency-Key',
+        type: 'Header',
+        schema: z.string().min(1).max(128),
+      },
+    ],
+    response: z
+      .object({
+        data: z
+          .object({
+            erasureId: z.string().regex(/^ers_[0-9A-HJKMNP-TV-Z]{26}$/),
+            slaDeadlineAt: z.string().datetime({ offset: true }),
+            slaBreached: z.boolean().optional(),
+            holders: z.array(
+              z
+                .object({
+                  participantId: z
+                    .string()
+                    .regex(/^prt_[0-9A-HJKMNP-TV-Z]{26}$/),
+                  status: z.enum([
+                    'pending',
+                    'acknowledged',
+                    'failed',
+                    'recreation_blocked',
+                  ]),
+                  acknowledgedAt: z
+                    .string()
+                    .datetime({ offset: true })
+                    .optional(),
+                  lastNudgedAt: z
+                    .string()
+                    .datetime({ offset: true })
+                    .optional(),
+                })
+                .passthrough()
+            ),
+            recreationAttempts: z.number().int().gte(0).optional(),
+          })
+          .passthrough(),
+        meta: z
+          .object({
+            requestId: z.string().uuid(),
+            correlationId: z.string(),
+            generatedAt: z.string().datetime({ offset: true }),
+          })
+          .partial()
+          .passthrough()
+          .optional(),
+      })
+      .passthrough(),
+    errors: [
+      {
+        status: 401,
+        description: `Missing or invalid API key`,
+        schema: z
+          .object({
+            type: z.string().url(),
+            title: z.string(),
+            status: z.number().int(),
+            detail: z.string(),
+            instance: z.string().url(),
+            code: z.string(),
+          })
+          .partial()
+          .passthrough(),
+      },
+      {
+        status: 404,
+        description: `Resource not found`,
+        schema: z
+          .object({
+            type: z.string().url(),
+            title: z.string(),
+            status: z.number().int(),
+            detail: z.string(),
+            instance: z.string().url(),
+            code: z.string(),
+          })
+          .partial()
+          .passthrough(),
+      },
+    ],
+  },
+]);
+
+export const api: any = new Zodios(
+  'https://api.ddd-codegen-starter.local/v1',
+  endpoints
+);
+
+export function createApiClient(baseUrl: string, options?: ZodiosOptions): any {
+  return new Zodios(baseUrl, endpoints, options);
+}

@@ -1,0 +1,170 @@
+openapi: 3.1.0
+info:
+  title: Erasures API
+  version: 0.1.0
+  description: |
+    Logical erasure orchestration, anonymisation certificates, and cross-participant
+    propagation / SLA monitoring (BR-3, BR-7, BR-10, BR-12).
+  license:
+    name: Proprietary
+    url: https://aliaskeep.local/license
+  x-domain: ers
+servers:
+  - url: https://api.aliaskeep.local
+security:
+  - bearerAuth: []
+  - apiKey: []
+tags:
+  - name: Erasures
+    description: Logical erasure and certificates
+  - name: Propagation
+    description: Cross-participant revocation acknowledgements
+paths:
+  /v1/erasures:
+    get:
+      operationId: listLogicalErasures
+      tags: [Erasures]
+      summary: List logical erasure requests
+      parameters:
+        - $ref: ./common/parameters.yaml#/components/parameters/Cursor
+        - $ref: ./common/parameters.yaml#/components/parameters/Limit
+        - name: status
+          in: query
+          schema:
+            type: string
+            enum: [queued, in_progress, completed, failed, sla_breach]
+      responses:
+        '200':
+          description: Erasures page
+          content:
+            application/json:
+              schema:
+                $ref: ./erasures.schemas.yaml#/components/schemas/LogicalErasureListResponse
+        '401':
+          $ref: ./common/responses.yaml#/components/responses/Unauthorized
+        default:
+          $ref: ./common/responses.yaml#/components/responses/Problem
+    post:
+      operationId: executeLogicalErasure
+      tags: [Erasures]
+      summary: Execute logical erasure (destroy links; not access suspension)
+      parameters:
+        - $ref: ./common/parameters.yaml#/components/parameters/IdempotencyKey
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: ./erasures.schemas.yaml#/components/schemas/LogicalErasureRequest
+      responses:
+        '202':
+          description: Erasure accepted
+          content:
+            application/json:
+              schema:
+                $ref: ./erasures.schemas.yaml#/components/schemas/LogicalErasureResponse
+        '400':
+          $ref: ./common/responses.yaml#/components/responses/BadRequest
+        '401':
+          $ref: ./common/responses.yaml#/components/responses/Unauthorized
+        default:
+          $ref: ./common/responses.yaml#/components/responses/Problem
+
+  /v1/erasures/{erasureId}:
+    get:
+      operationId: getLogicalErasure
+      tags: [Erasures]
+      summary: Get erasure request status and holder map
+      parameters:
+        - $ref: ./common/parameters.yaml#/components/parameters/ErasureIdPath
+      responses:
+        '200':
+          description: Erasure
+          content:
+            application/json:
+              schema:
+                $ref: ./erasures.schemas.yaml#/components/schemas/LogicalErasureResponse
+        '401':
+          $ref: ./common/responses.yaml#/components/responses/Unauthorized
+        '404':
+          $ref: ./common/responses.yaml#/components/responses/NotFound
+        default:
+          $ref: ./common/responses.yaml#/components/responses/Problem
+
+  /v1/erasure-certificates/{certificateId}:
+    get:
+      operationId: getErasureCertificate
+      tags: [Erasures]
+      summary: Get anonymisation / erasure certificate
+      parameters:
+        - $ref: ./common/parameters.yaml#/components/parameters/CertificateIdPath
+      responses:
+        '200':
+          description: Certificate
+          content:
+            application/json:
+              schema:
+                $ref: ./erasures.schemas.yaml#/components/schemas/ErasureCertificateResponse
+        '401':
+          $ref: ./common/responses.yaml#/components/responses/Unauthorized
+        '404':
+          $ref: ./common/responses.yaml#/components/responses/NotFound
+        default:
+          $ref: ./common/responses.yaml#/components/responses/Problem
+
+  /v1/erasures/{erasureId}/propagation:
+    get:
+      operationId: getErasurePropagation
+      tags: [Propagation]
+      summary: Cross-participant ack matrix and SLA clock
+      parameters:
+        - $ref: ./common/parameters.yaml#/components/parameters/ErasureIdPath
+      responses:
+        '200':
+          description: Propagation status
+          content:
+            application/json:
+              schema:
+                $ref: ./erasures.schemas.yaml#/components/schemas/PropagationStatusResponse
+        '401':
+          $ref: ./common/responses.yaml#/components/responses/Unauthorized
+        '404':
+          $ref: ./common/responses.yaml#/components/responses/NotFound
+        default:
+          $ref: ./common/responses.yaml#/components/responses/Problem
+
+  /v1/erasures/{erasureId}/propagation/nudge:
+    post:
+      operationId: nudgeErasurePropagation
+      tags: [Propagation]
+      summary: Nudge lagging participant to acknowledge revocation
+      parameters:
+        - $ref: ./common/parameters.yaml#/components/parameters/ErasureIdPath
+        - $ref: ./common/parameters.yaml#/components/parameters/IdempotencyKey
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: ./erasures.schemas.yaml#/components/schemas/NudgePropagationRequest
+      responses:
+        '200':
+          description: Nudge recorded
+          content:
+            application/json:
+              schema:
+                $ref: ./erasures.schemas.yaml#/components/schemas/PropagationStatusResponse
+        '401':
+          $ref: ./common/responses.yaml#/components/responses/Unauthorized
+        '404':
+          $ref: ./common/responses.yaml#/components/responses/NotFound
+        default:
+          $ref: ./common/responses.yaml#/components/responses/Problem
+
+components:
+  securitySchemes:
+    apiKey:
+      $ref: ./common/security.yaml#/components/securitySchemes/apiKey
+    bearerAuth:
+      $ref: ./common/security.yaml#/components/securitySchemes/bearerAuth
+

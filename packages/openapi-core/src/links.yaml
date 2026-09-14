@@ -1,0 +1,299 @@
+openapi: 3.1.0
+info:
+  title: Links API
+  version: 0.1.0
+  description: |
+    Link allocation, revocation, access suspension (BR-10), and counsel policy approval (BR-2, BR-5, BR-8).
+  license:
+    name: Proprietary
+    url: https://aliaskeep.local/license
+  x-domain: lnk
+servers:
+  - url: https://api.aliaskeep.local
+security:
+  - bearerAuth: []
+  - apiKey: []
+tags:
+  - name: Links
+    description: Link grants, revoke, suspend
+  - name: LinkPolicies
+    description: Counsel-approved link allocation policies
+paths:
+  /v1/links/grants:
+    get:
+      operationId: listLinkGrants
+      tags: [Links]
+      summary: List link grants
+      parameters:
+        - $ref: ./common/parameters.yaml#/components/parameters/Cursor
+        - $ref: ./common/parameters.yaml#/components/parameters/Limit
+        - name: vaultId
+          in: query
+          schema:
+            $ref: ./common/primitives.yaml#/components/schemas/VaultId
+        - name: pseudonymId
+          in: query
+          schema:
+            $ref: ./common/primitives.yaml#/components/schemas/PseudonymId
+        - name: status
+          in: query
+          schema:
+            type: string
+            enum: [active, revoked, suspended]
+      responses:
+        '200':
+          description: Grants page
+          content:
+            application/json:
+              schema:
+                $ref: ./links.schemas.yaml#/components/schemas/LinkGrantListResponse
+        '401':
+          $ref: ./common/responses.yaml#/components/responses/Unauthorized
+        default:
+          $ref: ./common/responses.yaml#/components/responses/Problem
+    post:
+      operationId: allocateLinkGrant
+      tags: [Links]
+      summary: Allocate a link grant (requires attested participant + approved policy)
+      parameters:
+        - $ref: ./common/parameters.yaml#/components/parameters/IdempotencyKey
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: ./links.schemas.yaml#/components/schemas/LinkGrantCreateRequest
+      responses:
+        '201':
+          description: Grant allocated
+          content:
+            application/json:
+              schema:
+                $ref: ./links.schemas.yaml#/components/schemas/LinkGrantResponse
+        '400':
+          $ref: ./common/responses.yaml#/components/responses/BadRequest
+        '401':
+          $ref: ./common/responses.yaml#/components/responses/Unauthorized
+        '403':
+          $ref: ./common/responses.yaml#/components/responses/Forbidden
+        '409':
+          $ref: ./common/responses.yaml#/components/responses/Conflict
+        '422':
+          $ref: ./common/responses.yaml#/components/responses/UnprocessableEntity
+        default:
+          $ref: ./common/responses.yaml#/components/responses/Problem
+
+  /v1/links/grants/{grantId}:
+    get:
+      operationId: getLinkGrant
+      tags: [Links]
+      summary: Get link grant
+      parameters:
+        - $ref: ./common/parameters.yaml#/components/parameters/LinkGrantIdPath
+      responses:
+        '200':
+          description: Grant
+          content:
+            application/json:
+              schema:
+                $ref: ./links.schemas.yaml#/components/schemas/LinkGrantResponse
+        '401':
+          $ref: ./common/responses.yaml#/components/responses/Unauthorized
+        '404':
+          $ref: ./common/responses.yaml#/components/responses/NotFound
+        default:
+          $ref: ./common/responses.yaml#/components/responses/Problem
+
+  /v1/links/grants/{grantId}/revoke:
+    post:
+      operationId: revokeLinkGrant
+      tags: [Links]
+      summary: Permanently revoke a link grant
+      parameters:
+        - $ref: ./common/parameters.yaml#/components/parameters/LinkGrantIdPath
+        - $ref: ./common/parameters.yaml#/components/parameters/IdempotencyKey
+      requestBody:
+        required: false
+        content:
+          application/json:
+            schema:
+              $ref: ./links.schemas.yaml#/components/schemas/RevokeLinkGrantRequest
+      responses:
+        '200':
+          description: Grant revoked
+          content:
+            application/json:
+              schema:
+                $ref: ./links.schemas.yaml#/components/schemas/LinkGrantResponse
+        '401':
+          $ref: ./common/responses.yaml#/components/responses/Unauthorized
+        '404':
+          $ref: ./common/responses.yaml#/components/responses/NotFound
+        default:
+          $ref: ./common/responses.yaml#/components/responses/Problem
+
+  /v1/links/grants/{grantId}/suspend:
+    post:
+      operationId: suspendLinkGrant
+      tags: [Links]
+      summary: Temporarily suspend access without logical erasure (BR-10)
+      parameters:
+        - $ref: ./common/parameters.yaml#/components/parameters/LinkGrantIdPath
+        - $ref: ./common/parameters.yaml#/components/parameters/IdempotencyKey
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: ./links.schemas.yaml#/components/schemas/SuspendLinkGrantRequest
+      responses:
+        '200':
+          description: Grant suspended
+          content:
+            application/json:
+              schema:
+                $ref: ./links.schemas.yaml#/components/schemas/LinkGrantResponse
+        '401':
+          $ref: ./common/responses.yaml#/components/responses/Unauthorized
+        '404':
+          $ref: ./common/responses.yaml#/components/responses/NotFound
+        default:
+          $ref: ./common/responses.yaml#/components/responses/Problem
+
+  /v1/links/grants/{grantId}/restore:
+    post:
+      operationId: restoreLinkGrant
+      tags: [Links]
+      summary: Restore a suspended grant (not erased)
+      parameters:
+        - $ref: ./common/parameters.yaml#/components/parameters/LinkGrantIdPath
+        - $ref: ./common/parameters.yaml#/components/parameters/IdempotencyKey
+      responses:
+        '200':
+          description: Grant restored
+          content:
+            application/json:
+              schema:
+                $ref: ./links.schemas.yaml#/components/schemas/LinkGrantResponse
+        '401':
+          $ref: ./common/responses.yaml#/components/responses/Unauthorized
+        '404':
+          $ref: ./common/responses.yaml#/components/responses/NotFound
+        '422':
+          $ref: ./common/responses.yaml#/components/responses/UnprocessableEntity
+        default:
+          $ref: ./common/responses.yaml#/components/responses/Problem
+
+  /v1/links/policies:
+    get:
+      operationId: listLinkPolicies
+      tags: [LinkPolicies]
+      summary: List link policies (counsel inbox)
+      parameters:
+        - $ref: ./common/parameters.yaml#/components/parameters/Cursor
+        - $ref: ./common/parameters.yaml#/components/parameters/Limit
+        - name: approvalStatus
+          in: query
+          schema:
+            type: string
+            enum: [draft, pending_counsel, approved, rejected]
+      responses:
+        '200':
+          description: Policies page
+          content:
+            application/json:
+              schema:
+                $ref: ./links.schemas.yaml#/components/schemas/LinkPolicyListResponse
+        '401':
+          $ref: ./common/responses.yaml#/components/responses/Unauthorized
+        default:
+          $ref: ./common/responses.yaml#/components/responses/Problem
+    post:
+      operationId: createLinkPolicy
+      tags: [LinkPolicies]
+      summary: Create a link allocation policy (submit to counsel)
+      parameters:
+        - $ref: ./common/parameters.yaml#/components/parameters/IdempotencyKey
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: ./links.schemas.yaml#/components/schemas/LinkPolicyCreateRequest
+      responses:
+        '201':
+          description: Policy created
+          content:
+            application/json:
+              schema:
+                $ref: ./links.schemas.yaml#/components/schemas/LinkPolicyResponse
+        '400':
+          $ref: ./common/responses.yaml#/components/responses/BadRequest
+        '401':
+          $ref: ./common/responses.yaml#/components/responses/Unauthorized
+        default:
+          $ref: ./common/responses.yaml#/components/responses/Problem
+
+  /v1/links/policies/{policyId}/approve:
+    post:
+      operationId: approveLinkPolicy
+      tags: [LinkPolicies]
+      summary: Counsel approve link policy
+      parameters:
+        - $ref: ./common/parameters.yaml#/components/parameters/LinkPolicyIdPath
+        - $ref: ./common/parameters.yaml#/components/parameters/IdempotencyKey
+      requestBody:
+        required: false
+        content:
+          application/json:
+            schema:
+              $ref: ./links.schemas.yaml#/components/schemas/CounselDecisionRequest
+      responses:
+        '200':
+          description: Policy approved
+          content:
+            application/json:
+              schema:
+                $ref: ./links.schemas.yaml#/components/schemas/LinkPolicyResponse
+        '401':
+          $ref: ./common/responses.yaml#/components/responses/Unauthorized
+        '404':
+          $ref: ./common/responses.yaml#/components/responses/NotFound
+        default:
+          $ref: ./common/responses.yaml#/components/responses/Problem
+
+  /v1/links/policies/{policyId}/reject:
+    post:
+      operationId: rejectLinkPolicy
+      tags: [LinkPolicies]
+      summary: Counsel reject link policy
+      parameters:
+        - $ref: ./common/parameters.yaml#/components/parameters/LinkPolicyIdPath
+        - $ref: ./common/parameters.yaml#/components/parameters/IdempotencyKey
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: ./links.schemas.yaml#/components/schemas/CounselDecisionRequest
+      responses:
+        '200':
+          description: Policy rejected
+          content:
+            application/json:
+              schema:
+                $ref: ./links.schemas.yaml#/components/schemas/LinkPolicyResponse
+        '401':
+          $ref: ./common/responses.yaml#/components/responses/Unauthorized
+        '404':
+          $ref: ./common/responses.yaml#/components/responses/NotFound
+        default:
+          $ref: ./common/responses.yaml#/components/responses/Problem
+
+components:
+  securitySchemes:
+    apiKey:
+      $ref: ./common/security.yaml#/components/securitySchemes/apiKey
+    bearerAuth:
+      $ref: ./common/security.yaml#/components/securitySchemes/bearerAuth
+

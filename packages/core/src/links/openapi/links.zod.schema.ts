@@ -1,0 +1,1289 @@
+import { makeApi, Zodios, type ZodiosOptions } from '@zodios/core';
+import { z } from 'zod';
+
+const allocateLinkGrant_Body = z
+  .object({
+    vaultId: z.string().regex(/^vlt_[0-9A-HJKMNP-TV-Z]{26}$/),
+    participantId: z.string().regex(/^prt_[0-9A-HJKMNP-TV-Z]{26}$/),
+    channelId: z.string().min(1).max(128),
+    policyId: z.string().regex(/^pol_[0-9A-HJKMNP-TV-Z]{26}$/),
+    lawfulBasis: z.string(),
+    retentionIntent: z.string().optional(),
+  })
+  .passthrough();
+const suspendLinkGrant_Body = z
+  .object({ reason: z.string().min(1).max(500), note: z.string().optional() })
+  .passthrough();
+const createLinkPolicy_Body = z
+  .object({
+    consortiumId: z.string().regex(/^cns_[0-9A-HJKMNP-TV-Z]{26}$/),
+    channelId: z.string().min(1).max(128),
+    lawfulBasis: z.string(),
+    retentionIntent: z.string().optional(),
+    crossBorder: z.boolean().optional().default(false),
+    submitToCounsel: z.boolean().optional().default(true),
+  })
+  .passthrough();
+const VaultId = z.string();
+const PseudonymId = z.string();
+const Problem = z
+  .object({
+    type: z.string().url(),
+    title: z.string(),
+    status: z.number().int(),
+    detail: z.string(),
+    instance: z.string().url(),
+    code: z.string(),
+  })
+  .partial()
+  .passthrough();
+const LinkGrantId = z.string();
+const ParticipantId = z.string();
+const ChannelId = z.string();
+const LinkPolicyId = z.string();
+const LinkGrantStatus = z.enum(['active', 'revoked', 'suspended']);
+const LinkGrant = z
+  .object({
+    grantId: z.string().regex(/^lnk_[0-9A-HJKMNP-TV-Z]{26}$/),
+    vaultId: z.string().regex(/^vlt_[0-9A-HJKMNP-TV-Z]{26}$/),
+    participantId: z.string().regex(/^prt_[0-9A-HJKMNP-TV-Z]{26}$/),
+    channelId: z.string().min(1).max(128),
+    policyId: z
+      .string()
+      .regex(/^pol_[0-9A-HJKMNP-TV-Z]{26}$/)
+      .optional(),
+    lawfulBasis: z.string(),
+    retentionIntent: z.string().optional(),
+    status: z.enum(['active', 'revoked', 'suspended']),
+    lastAccessedAt: z.string().datetime({ offset: true }).optional(),
+    suspensionReason: z.string().optional(),
+    createdAt: z.string().datetime({ offset: true }),
+    revokedAt: z.string().datetime({ offset: true }).optional(),
+  })
+  .passthrough();
+const LinkGrantListData = z
+  .object({
+    items: z.array(
+      z
+        .object({
+          grantId: z.string().regex(/^lnk_[0-9A-HJKMNP-TV-Z]{26}$/),
+          vaultId: z.string().regex(/^vlt_[0-9A-HJKMNP-TV-Z]{26}$/),
+          participantId: z.string().regex(/^prt_[0-9A-HJKMNP-TV-Z]{26}$/),
+          channelId: z.string().min(1).max(128),
+          policyId: z
+            .string()
+            .regex(/^pol_[0-9A-HJKMNP-TV-Z]{26}$/)
+            .optional(),
+          lawfulBasis: z.string(),
+          retentionIntent: z.string().optional(),
+          status: z.enum(['active', 'revoked', 'suspended']),
+          lastAccessedAt: z.string().datetime({ offset: true }).optional(),
+          suspensionReason: z.string().optional(),
+          createdAt: z.string().datetime({ offset: true }),
+          revokedAt: z.string().datetime({ offset: true }).optional(),
+        })
+        .passthrough()
+    ),
+    nextCursor: z.string().optional(),
+  })
+  .passthrough();
+const ResponseMeta = z
+  .object({
+    requestId: z.string().uuid(),
+    correlationId: z.string(),
+    generatedAt: z.string().datetime({ offset: true }),
+  })
+  .partial()
+  .passthrough();
+const LinkGrantListResponse = z
+  .object({
+    data: z
+      .object({
+        items: z.array(
+          z
+            .object({
+              grantId: z.string().regex(/^lnk_[0-9A-HJKMNP-TV-Z]{26}$/),
+              vaultId: z.string().regex(/^vlt_[0-9A-HJKMNP-TV-Z]{26}$/),
+              participantId: z.string().regex(/^prt_[0-9A-HJKMNP-TV-Z]{26}$/),
+              channelId: z.string().min(1).max(128),
+              policyId: z
+                .string()
+                .regex(/^pol_[0-9A-HJKMNP-TV-Z]{26}$/)
+                .optional(),
+              lawfulBasis: z.string(),
+              retentionIntent: z.string().optional(),
+              status: z.enum(['active', 'revoked', 'suspended']),
+              lastAccessedAt: z.string().datetime({ offset: true }).optional(),
+              suspensionReason: z.string().optional(),
+              createdAt: z.string().datetime({ offset: true }),
+              revokedAt: z.string().datetime({ offset: true }).optional(),
+            })
+            .passthrough()
+        ),
+        nextCursor: z.string().optional(),
+      })
+      .passthrough(),
+    meta: z
+      .object({
+        requestId: z.string().uuid(),
+        correlationId: z.string(),
+        generatedAt: z.string().datetime({ offset: true }),
+      })
+      .partial()
+      .passthrough()
+      .optional(),
+  })
+  .passthrough();
+const LinkGrantCreateRequest = z
+  .object({
+    vaultId: z.string().regex(/^vlt_[0-9A-HJKMNP-TV-Z]{26}$/),
+    participantId: z.string().regex(/^prt_[0-9A-HJKMNP-TV-Z]{26}$/),
+    channelId: z.string().min(1).max(128),
+    policyId: z.string().regex(/^pol_[0-9A-HJKMNP-TV-Z]{26}$/),
+    lawfulBasis: z.string(),
+    retentionIntent: z.string().optional(),
+  })
+  .passthrough();
+const LinkGrantResponse = z
+  .object({
+    data: z
+      .object({
+        grantId: z.string().regex(/^lnk_[0-9A-HJKMNP-TV-Z]{26}$/),
+        vaultId: z.string().regex(/^vlt_[0-9A-HJKMNP-TV-Z]{26}$/),
+        participantId: z.string().regex(/^prt_[0-9A-HJKMNP-TV-Z]{26}$/),
+        channelId: z.string().min(1).max(128),
+        policyId: z
+          .string()
+          .regex(/^pol_[0-9A-HJKMNP-TV-Z]{26}$/)
+          .optional(),
+        lawfulBasis: z.string(),
+        retentionIntent: z.string().optional(),
+        status: z.enum(['active', 'revoked', 'suspended']),
+        lastAccessedAt: z.string().datetime({ offset: true }).optional(),
+        suspensionReason: z.string().optional(),
+        createdAt: z.string().datetime({ offset: true }),
+        revokedAt: z.string().datetime({ offset: true }).optional(),
+      })
+      .passthrough(),
+    meta: z
+      .object({
+        requestId: z.string().uuid(),
+        correlationId: z.string(),
+        generatedAt: z.string().datetime({ offset: true }),
+      })
+      .partial()
+      .passthrough()
+      .optional(),
+  })
+  .passthrough();
+const RevokeLinkGrantRequest = z
+  .object({ reason: z.string() })
+  .partial()
+  .passthrough();
+const SuspendLinkGrantRequest = z
+  .object({ reason: z.string().min(1).max(500), note: z.string().optional() })
+  .passthrough();
+const ConsortiumId = z.string();
+const LinkPolicyApprovalStatus = z.enum([
+  'draft',
+  'pending_counsel',
+  'approved',
+  'rejected',
+]);
+const LinkPolicy = z
+  .object({
+    policyId: z.string().regex(/^pol_[0-9A-HJKMNP-TV-Z]{26}$/),
+    consortiumId: z.string().regex(/^cns_[0-9A-HJKMNP-TV-Z]{26}$/),
+    channelId: z.string().min(1).max(128),
+    lawfulBasis: z.string().optional(),
+    retentionIntent: z.string().optional(),
+    crossBorder: z.boolean().optional(),
+    approvalStatus: z.enum([
+      'draft',
+      'pending_counsel',
+      'approved',
+      'rejected',
+    ]),
+    counselNote: z.string().optional(),
+    createdAt: z.string().datetime({ offset: true }),
+    decidedAt: z.string().datetime({ offset: true }).optional(),
+  })
+  .passthrough();
+const LinkPolicyListData = z
+  .object({
+    items: z.array(
+      z
+        .object({
+          policyId: z.string().regex(/^pol_[0-9A-HJKMNP-TV-Z]{26}$/),
+          consortiumId: z.string().regex(/^cns_[0-9A-HJKMNP-TV-Z]{26}$/),
+          channelId: z.string().min(1).max(128),
+          lawfulBasis: z.string().optional(),
+          retentionIntent: z.string().optional(),
+          crossBorder: z.boolean().optional(),
+          approvalStatus: z.enum([
+            'draft',
+            'pending_counsel',
+            'approved',
+            'rejected',
+          ]),
+          counselNote: z.string().optional(),
+          createdAt: z.string().datetime({ offset: true }),
+          decidedAt: z.string().datetime({ offset: true }).optional(),
+        })
+        .passthrough()
+    ),
+    nextCursor: z.string().optional(),
+  })
+  .passthrough();
+const LinkPolicyListResponse = z
+  .object({
+    data: z
+      .object({
+        items: z.array(
+          z
+            .object({
+              policyId: z.string().regex(/^pol_[0-9A-HJKMNP-TV-Z]{26}$/),
+              consortiumId: z.string().regex(/^cns_[0-9A-HJKMNP-TV-Z]{26}$/),
+              channelId: z.string().min(1).max(128),
+              lawfulBasis: z.string().optional(),
+              retentionIntent: z.string().optional(),
+              crossBorder: z.boolean().optional(),
+              approvalStatus: z.enum([
+                'draft',
+                'pending_counsel',
+                'approved',
+                'rejected',
+              ]),
+              counselNote: z.string().optional(),
+              createdAt: z.string().datetime({ offset: true }),
+              decidedAt: z.string().datetime({ offset: true }).optional(),
+            })
+            .passthrough()
+        ),
+        nextCursor: z.string().optional(),
+      })
+      .passthrough(),
+    meta: z
+      .object({
+        requestId: z.string().uuid(),
+        correlationId: z.string(),
+        generatedAt: z.string().datetime({ offset: true }),
+      })
+      .partial()
+      .passthrough()
+      .optional(),
+  })
+  .passthrough();
+const LinkPolicyCreateRequest = z
+  .object({
+    consortiumId: z.string().regex(/^cns_[0-9A-HJKMNP-TV-Z]{26}$/),
+    channelId: z.string().min(1).max(128),
+    lawfulBasis: z.string(),
+    retentionIntent: z.string().optional(),
+    crossBorder: z.boolean().optional().default(false),
+    submitToCounsel: z.boolean().optional().default(true),
+  })
+  .passthrough();
+const LinkPolicyResponse = z
+  .object({
+    data: z
+      .object({
+        policyId: z.string().regex(/^pol_[0-9A-HJKMNP-TV-Z]{26}$/),
+        consortiumId: z.string().regex(/^cns_[0-9A-HJKMNP-TV-Z]{26}$/),
+        channelId: z.string().min(1).max(128),
+        lawfulBasis: z.string().optional(),
+        retentionIntent: z.string().optional(),
+        crossBorder: z.boolean().optional(),
+        approvalStatus: z.enum([
+          'draft',
+          'pending_counsel',
+          'approved',
+          'rejected',
+        ]),
+        counselNote: z.string().optional(),
+        createdAt: z.string().datetime({ offset: true }),
+        decidedAt: z.string().datetime({ offset: true }).optional(),
+      })
+      .passthrough(),
+    meta: z
+      .object({
+        requestId: z.string().uuid(),
+        correlationId: z.string(),
+        generatedAt: z.string().datetime({ offset: true }),
+      })
+      .partial()
+      .passthrough()
+      .optional(),
+  })
+  .passthrough();
+const CounselDecisionRequest = z
+  .object({ note: z.string().max(2000) })
+  .partial()
+  .passthrough();
+
+export const schemas: any = {
+  allocateLinkGrant_Body,
+  suspendLinkGrant_Body,
+  createLinkPolicy_Body,
+  VaultId,
+  PseudonymId,
+  Problem,
+  LinkGrantId,
+  ParticipantId,
+  ChannelId,
+  LinkPolicyId,
+  LinkGrantStatus,
+  LinkGrant,
+  LinkGrantListData,
+  ResponseMeta,
+  LinkGrantListResponse,
+  LinkGrantCreateRequest,
+  LinkGrantResponse,
+  RevokeLinkGrantRequest,
+  SuspendLinkGrantRequest,
+  ConsortiumId,
+  LinkPolicyApprovalStatus,
+  LinkPolicy,
+  LinkPolicyListData,
+  LinkPolicyListResponse,
+  LinkPolicyCreateRequest,
+  LinkPolicyResponse,
+  CounselDecisionRequest,
+};
+
+const endpoints = makeApi([
+  {
+    method: 'get',
+    path: '/v1/links/grants',
+    alias: 'listLinkGrants',
+    requestFormat: 'json',
+    parameters: [
+      {
+        name: 'cursor',
+        type: 'Query',
+        schema: z.string().optional(),
+      },
+      {
+        name: 'limit',
+        type: 'Query',
+        schema: z.number().int().gte(1).lte(200).optional().default(50),
+      },
+      {
+        name: 'vaultId',
+        type: 'Query',
+        schema: z
+          .string()
+          .regex(/^vlt_[0-9A-HJKMNP-TV-Z]{26}$/)
+          .optional(),
+      },
+      {
+        name: 'pseudonymId',
+        type: 'Query',
+        schema: z
+          .string()
+          .regex(/^psn_[0-9A-HJKMNP-TV-Z]{26}$/)
+          .optional(),
+      },
+      {
+        name: 'status',
+        type: 'Query',
+        schema: z.enum(['active', 'revoked', 'suspended']).optional(),
+      },
+    ],
+    response: z
+      .object({
+        data: z
+          .object({
+            items: z.array(
+              z
+                .object({
+                  grantId: z.string().regex(/^lnk_[0-9A-HJKMNP-TV-Z]{26}$/),
+                  vaultId: z.string().regex(/^vlt_[0-9A-HJKMNP-TV-Z]{26}$/),
+                  participantId: z
+                    .string()
+                    .regex(/^prt_[0-9A-HJKMNP-TV-Z]{26}$/),
+                  channelId: z.string().min(1).max(128),
+                  policyId: z
+                    .string()
+                    .regex(/^pol_[0-9A-HJKMNP-TV-Z]{26}$/)
+                    .optional(),
+                  lawfulBasis: z.string(),
+                  retentionIntent: z.string().optional(),
+                  status: z.enum(['active', 'revoked', 'suspended']),
+                  lastAccessedAt: z
+                    .string()
+                    .datetime({ offset: true })
+                    .optional(),
+                  suspensionReason: z.string().optional(),
+                  createdAt: z.string().datetime({ offset: true }),
+                  revokedAt: z.string().datetime({ offset: true }).optional(),
+                })
+                .passthrough()
+            ),
+            nextCursor: z.string().optional(),
+          })
+          .passthrough(),
+        meta: z
+          .object({
+            requestId: z.string().uuid(),
+            correlationId: z.string(),
+            generatedAt: z.string().datetime({ offset: true }),
+          })
+          .partial()
+          .passthrough()
+          .optional(),
+      })
+      .passthrough(),
+    errors: [
+      {
+        status: 401,
+        description: `Missing or invalid API key`,
+        schema: z
+          .object({
+            type: z.string().url(),
+            title: z.string(),
+            status: z.number().int(),
+            detail: z.string(),
+            instance: z.string().url(),
+            code: z.string(),
+          })
+          .partial()
+          .passthrough(),
+      },
+    ],
+  },
+  {
+    method: 'post',
+    path: '/v1/links/grants',
+    alias: 'allocateLinkGrant',
+    requestFormat: 'json',
+    parameters: [
+      {
+        name: 'body',
+        type: 'Body',
+        schema: allocateLinkGrant_Body,
+      },
+      {
+        name: 'Idempotency-Key',
+        type: 'Header',
+        schema: z.string().min(1).max(128),
+      },
+    ],
+    response: z
+      .object({
+        data: z
+          .object({
+            grantId: z.string().regex(/^lnk_[0-9A-HJKMNP-TV-Z]{26}$/),
+            vaultId: z.string().regex(/^vlt_[0-9A-HJKMNP-TV-Z]{26}$/),
+            participantId: z.string().regex(/^prt_[0-9A-HJKMNP-TV-Z]{26}$/),
+            channelId: z.string().min(1).max(128),
+            policyId: z
+              .string()
+              .regex(/^pol_[0-9A-HJKMNP-TV-Z]{26}$/)
+              .optional(),
+            lawfulBasis: z.string(),
+            retentionIntent: z.string().optional(),
+            status: z.enum(['active', 'revoked', 'suspended']),
+            lastAccessedAt: z.string().datetime({ offset: true }).optional(),
+            suspensionReason: z.string().optional(),
+            createdAt: z.string().datetime({ offset: true }),
+            revokedAt: z.string().datetime({ offset: true }).optional(),
+          })
+          .passthrough(),
+        meta: z
+          .object({
+            requestId: z.string().uuid(),
+            correlationId: z.string(),
+            generatedAt: z.string().datetime({ offset: true }),
+          })
+          .partial()
+          .passthrough()
+          .optional(),
+      })
+      .passthrough(),
+    errors: [
+      {
+        status: 400,
+        description: `Malformed request`,
+        schema: z
+          .object({
+            type: z.string().url(),
+            title: z.string(),
+            status: z.number().int(),
+            detail: z.string(),
+            instance: z.string().url(),
+            code: z.string(),
+          })
+          .partial()
+          .passthrough(),
+      },
+      {
+        status: 401,
+        description: `Missing or invalid API key`,
+        schema: z
+          .object({
+            type: z.string().url(),
+            title: z.string(),
+            status: z.number().int(),
+            detail: z.string(),
+            instance: z.string().url(),
+            code: z.string(),
+          })
+          .partial()
+          .passthrough(),
+      },
+      {
+        status: 403,
+        description: `Authenticated but not permitted`,
+        schema: z
+          .object({
+            type: z.string().url(),
+            title: z.string(),
+            status: z.number().int(),
+            detail: z.string(),
+            instance: z.string().url(),
+            code: z.string(),
+          })
+          .partial()
+          .passthrough(),
+      },
+      {
+        status: 409,
+        description: `Idempotency key reuse with different body, or state conflict`,
+        schema: z
+          .object({
+            type: z.string().url(),
+            title: z.string(),
+            status: z.number().int(),
+            detail: z.string(),
+            instance: z.string().url(),
+            code: z.string(),
+          })
+          .partial()
+          .passthrough(),
+      },
+      {
+        status: 422,
+        description: `Semantically invalid request (e.g. PACK_EMPTY)`,
+        schema: z
+          .object({
+            type: z.string().url(),
+            title: z.string(),
+            status: z.number().int(),
+            detail: z.string(),
+            instance: z.string().url(),
+            code: z.string(),
+          })
+          .partial()
+          .passthrough(),
+      },
+    ],
+  },
+  {
+    method: 'get',
+    path: '/v1/links/grants/:grantId',
+    alias: 'getLinkGrant',
+    requestFormat: 'json',
+    parameters: [
+      {
+        name: 'grantId',
+        type: 'Path',
+        schema: z.string().regex(/^lnk_[0-9A-HJKMNP-TV-Z]{26}$/),
+      },
+    ],
+    response: z
+      .object({
+        data: z
+          .object({
+            grantId: z.string().regex(/^lnk_[0-9A-HJKMNP-TV-Z]{26}$/),
+            vaultId: z.string().regex(/^vlt_[0-9A-HJKMNP-TV-Z]{26}$/),
+            participantId: z.string().regex(/^prt_[0-9A-HJKMNP-TV-Z]{26}$/),
+            channelId: z.string().min(1).max(128),
+            policyId: z
+              .string()
+              .regex(/^pol_[0-9A-HJKMNP-TV-Z]{26}$/)
+              .optional(),
+            lawfulBasis: z.string(),
+            retentionIntent: z.string().optional(),
+            status: z.enum(['active', 'revoked', 'suspended']),
+            lastAccessedAt: z.string().datetime({ offset: true }).optional(),
+            suspensionReason: z.string().optional(),
+            createdAt: z.string().datetime({ offset: true }),
+            revokedAt: z.string().datetime({ offset: true }).optional(),
+          })
+          .passthrough(),
+        meta: z
+          .object({
+            requestId: z.string().uuid(),
+            correlationId: z.string(),
+            generatedAt: z.string().datetime({ offset: true }),
+          })
+          .partial()
+          .passthrough()
+          .optional(),
+      })
+      .passthrough(),
+    errors: [
+      {
+        status: 401,
+        description: `Missing or invalid API key`,
+        schema: z
+          .object({
+            type: z.string().url(),
+            title: z.string(),
+            status: z.number().int(),
+            detail: z.string(),
+            instance: z.string().url(),
+            code: z.string(),
+          })
+          .partial()
+          .passthrough(),
+      },
+      {
+        status: 404,
+        description: `Resource not found`,
+        schema: z
+          .object({
+            type: z.string().url(),
+            title: z.string(),
+            status: z.number().int(),
+            detail: z.string(),
+            instance: z.string().url(),
+            code: z.string(),
+          })
+          .partial()
+          .passthrough(),
+      },
+    ],
+  },
+  {
+    method: 'post',
+    path: '/v1/links/grants/:grantId/restore',
+    alias: 'restoreLinkGrant',
+    requestFormat: 'json',
+    parameters: [
+      {
+        name: 'grantId',
+        type: 'Path',
+        schema: z.string().regex(/^lnk_[0-9A-HJKMNP-TV-Z]{26}$/),
+      },
+      {
+        name: 'Idempotency-Key',
+        type: 'Header',
+        schema: z.string().min(1).max(128),
+      },
+    ],
+    response: z
+      .object({
+        data: z
+          .object({
+            grantId: z.string().regex(/^lnk_[0-9A-HJKMNP-TV-Z]{26}$/),
+            vaultId: z.string().regex(/^vlt_[0-9A-HJKMNP-TV-Z]{26}$/),
+            participantId: z.string().regex(/^prt_[0-9A-HJKMNP-TV-Z]{26}$/),
+            channelId: z.string().min(1).max(128),
+            policyId: z
+              .string()
+              .regex(/^pol_[0-9A-HJKMNP-TV-Z]{26}$/)
+              .optional(),
+            lawfulBasis: z.string(),
+            retentionIntent: z.string().optional(),
+            status: z.enum(['active', 'revoked', 'suspended']),
+            lastAccessedAt: z.string().datetime({ offset: true }).optional(),
+            suspensionReason: z.string().optional(),
+            createdAt: z.string().datetime({ offset: true }),
+            revokedAt: z.string().datetime({ offset: true }).optional(),
+          })
+          .passthrough(),
+        meta: z
+          .object({
+            requestId: z.string().uuid(),
+            correlationId: z.string(),
+            generatedAt: z.string().datetime({ offset: true }),
+          })
+          .partial()
+          .passthrough()
+          .optional(),
+      })
+      .passthrough(),
+    errors: [
+      {
+        status: 401,
+        description: `Missing or invalid API key`,
+        schema: z
+          .object({
+            type: z.string().url(),
+            title: z.string(),
+            status: z.number().int(),
+            detail: z.string(),
+            instance: z.string().url(),
+            code: z.string(),
+          })
+          .partial()
+          .passthrough(),
+      },
+      {
+        status: 404,
+        description: `Resource not found`,
+        schema: z
+          .object({
+            type: z.string().url(),
+            title: z.string(),
+            status: z.number().int(),
+            detail: z.string(),
+            instance: z.string().url(),
+            code: z.string(),
+          })
+          .partial()
+          .passthrough(),
+      },
+      {
+        status: 422,
+        description: `Semantically invalid request (e.g. PACK_EMPTY)`,
+        schema: z
+          .object({
+            type: z.string().url(),
+            title: z.string(),
+            status: z.number().int(),
+            detail: z.string(),
+            instance: z.string().url(),
+            code: z.string(),
+          })
+          .partial()
+          .passthrough(),
+      },
+    ],
+  },
+  {
+    method: 'post',
+    path: '/v1/links/grants/:grantId/revoke',
+    alias: 'revokeLinkGrant',
+    requestFormat: 'json',
+    parameters: [
+      {
+        name: 'body',
+        type: 'Body',
+        schema: z
+          .object({ reason: z.string() })
+          .partial()
+          .passthrough()
+          .optional(),
+      },
+      {
+        name: 'grantId',
+        type: 'Path',
+        schema: z.string().regex(/^lnk_[0-9A-HJKMNP-TV-Z]{26}$/),
+      },
+      {
+        name: 'Idempotency-Key',
+        type: 'Header',
+        schema: z.string().min(1).max(128),
+      },
+    ],
+    response: z
+      .object({
+        data: z
+          .object({
+            grantId: z.string().regex(/^lnk_[0-9A-HJKMNP-TV-Z]{26}$/),
+            vaultId: z.string().regex(/^vlt_[0-9A-HJKMNP-TV-Z]{26}$/),
+            participantId: z.string().regex(/^prt_[0-9A-HJKMNP-TV-Z]{26}$/),
+            channelId: z.string().min(1).max(128),
+            policyId: z
+              .string()
+              .regex(/^pol_[0-9A-HJKMNP-TV-Z]{26}$/)
+              .optional(),
+            lawfulBasis: z.string(),
+            retentionIntent: z.string().optional(),
+            status: z.enum(['active', 'revoked', 'suspended']),
+            lastAccessedAt: z.string().datetime({ offset: true }).optional(),
+            suspensionReason: z.string().optional(),
+            createdAt: z.string().datetime({ offset: true }),
+            revokedAt: z.string().datetime({ offset: true }).optional(),
+          })
+          .passthrough(),
+        meta: z
+          .object({
+            requestId: z.string().uuid(),
+            correlationId: z.string(),
+            generatedAt: z.string().datetime({ offset: true }),
+          })
+          .partial()
+          .passthrough()
+          .optional(),
+      })
+      .passthrough(),
+    errors: [
+      {
+        status: 401,
+        description: `Missing or invalid API key`,
+        schema: z
+          .object({
+            type: z.string().url(),
+            title: z.string(),
+            status: z.number().int(),
+            detail: z.string(),
+            instance: z.string().url(),
+            code: z.string(),
+          })
+          .partial()
+          .passthrough(),
+      },
+      {
+        status: 404,
+        description: `Resource not found`,
+        schema: z
+          .object({
+            type: z.string().url(),
+            title: z.string(),
+            status: z.number().int(),
+            detail: z.string(),
+            instance: z.string().url(),
+            code: z.string(),
+          })
+          .partial()
+          .passthrough(),
+      },
+    ],
+  },
+  {
+    method: 'post',
+    path: '/v1/links/grants/:grantId/suspend',
+    alias: 'suspendLinkGrant',
+    requestFormat: 'json',
+    parameters: [
+      {
+        name: 'body',
+        type: 'Body',
+        schema: suspendLinkGrant_Body,
+      },
+      {
+        name: 'grantId',
+        type: 'Path',
+        schema: z.string().regex(/^lnk_[0-9A-HJKMNP-TV-Z]{26}$/),
+      },
+      {
+        name: 'Idempotency-Key',
+        type: 'Header',
+        schema: z.string().min(1).max(128),
+      },
+    ],
+    response: z
+      .object({
+        data: z
+          .object({
+            grantId: z.string().regex(/^lnk_[0-9A-HJKMNP-TV-Z]{26}$/),
+            vaultId: z.string().regex(/^vlt_[0-9A-HJKMNP-TV-Z]{26}$/),
+            participantId: z.string().regex(/^prt_[0-9A-HJKMNP-TV-Z]{26}$/),
+            channelId: z.string().min(1).max(128),
+            policyId: z
+              .string()
+              .regex(/^pol_[0-9A-HJKMNP-TV-Z]{26}$/)
+              .optional(),
+            lawfulBasis: z.string(),
+            retentionIntent: z.string().optional(),
+            status: z.enum(['active', 'revoked', 'suspended']),
+            lastAccessedAt: z.string().datetime({ offset: true }).optional(),
+            suspensionReason: z.string().optional(),
+            createdAt: z.string().datetime({ offset: true }),
+            revokedAt: z.string().datetime({ offset: true }).optional(),
+          })
+          .passthrough(),
+        meta: z
+          .object({
+            requestId: z.string().uuid(),
+            correlationId: z.string(),
+            generatedAt: z.string().datetime({ offset: true }),
+          })
+          .partial()
+          .passthrough()
+          .optional(),
+      })
+      .passthrough(),
+    errors: [
+      {
+        status: 401,
+        description: `Missing or invalid API key`,
+        schema: z
+          .object({
+            type: z.string().url(),
+            title: z.string(),
+            status: z.number().int(),
+            detail: z.string(),
+            instance: z.string().url(),
+            code: z.string(),
+          })
+          .partial()
+          .passthrough(),
+      },
+      {
+        status: 404,
+        description: `Resource not found`,
+        schema: z
+          .object({
+            type: z.string().url(),
+            title: z.string(),
+            status: z.number().int(),
+            detail: z.string(),
+            instance: z.string().url(),
+            code: z.string(),
+          })
+          .partial()
+          .passthrough(),
+      },
+    ],
+  },
+  {
+    method: 'get',
+    path: '/v1/links/policies',
+    alias: 'listLinkPolicies',
+    requestFormat: 'json',
+    parameters: [
+      {
+        name: 'cursor',
+        type: 'Query',
+        schema: z.string().optional(),
+      },
+      {
+        name: 'limit',
+        type: 'Query',
+        schema: z.number().int().gte(1).lte(200).optional().default(50),
+      },
+      {
+        name: 'approvalStatus',
+        type: 'Query',
+        schema: z
+          .enum(['draft', 'pending_counsel', 'approved', 'rejected'])
+          .optional(),
+      },
+    ],
+    response: z
+      .object({
+        data: z
+          .object({
+            items: z.array(
+              z
+                .object({
+                  policyId: z.string().regex(/^pol_[0-9A-HJKMNP-TV-Z]{26}$/),
+                  consortiumId: z
+                    .string()
+                    .regex(/^cns_[0-9A-HJKMNP-TV-Z]{26}$/),
+                  channelId: z.string().min(1).max(128),
+                  lawfulBasis: z.string().optional(),
+                  retentionIntent: z.string().optional(),
+                  crossBorder: z.boolean().optional(),
+                  approvalStatus: z.enum([
+                    'draft',
+                    'pending_counsel',
+                    'approved',
+                    'rejected',
+                  ]),
+                  counselNote: z.string().optional(),
+                  createdAt: z.string().datetime({ offset: true }),
+                  decidedAt: z.string().datetime({ offset: true }).optional(),
+                })
+                .passthrough()
+            ),
+            nextCursor: z.string().optional(),
+          })
+          .passthrough(),
+        meta: z
+          .object({
+            requestId: z.string().uuid(),
+            correlationId: z.string(),
+            generatedAt: z.string().datetime({ offset: true }),
+          })
+          .partial()
+          .passthrough()
+          .optional(),
+      })
+      .passthrough(),
+    errors: [
+      {
+        status: 401,
+        description: `Missing or invalid API key`,
+        schema: z
+          .object({
+            type: z.string().url(),
+            title: z.string(),
+            status: z.number().int(),
+            detail: z.string(),
+            instance: z.string().url(),
+            code: z.string(),
+          })
+          .partial()
+          .passthrough(),
+      },
+    ],
+  },
+  {
+    method: 'post',
+    path: '/v1/links/policies',
+    alias: 'createLinkPolicy',
+    requestFormat: 'json',
+    parameters: [
+      {
+        name: 'body',
+        type: 'Body',
+        schema: createLinkPolicy_Body,
+      },
+      {
+        name: 'Idempotency-Key',
+        type: 'Header',
+        schema: z.string().min(1).max(128),
+      },
+    ],
+    response: z
+      .object({
+        data: z
+          .object({
+            policyId: z.string().regex(/^pol_[0-9A-HJKMNP-TV-Z]{26}$/),
+            consortiumId: z.string().regex(/^cns_[0-9A-HJKMNP-TV-Z]{26}$/),
+            channelId: z.string().min(1).max(128),
+            lawfulBasis: z.string().optional(),
+            retentionIntent: z.string().optional(),
+            crossBorder: z.boolean().optional(),
+            approvalStatus: z.enum([
+              'draft',
+              'pending_counsel',
+              'approved',
+              'rejected',
+            ]),
+            counselNote: z.string().optional(),
+            createdAt: z.string().datetime({ offset: true }),
+            decidedAt: z.string().datetime({ offset: true }).optional(),
+          })
+          .passthrough(),
+        meta: z
+          .object({
+            requestId: z.string().uuid(),
+            correlationId: z.string(),
+            generatedAt: z.string().datetime({ offset: true }),
+          })
+          .partial()
+          .passthrough()
+          .optional(),
+      })
+      .passthrough(),
+    errors: [
+      {
+        status: 400,
+        description: `Malformed request`,
+        schema: z
+          .object({
+            type: z.string().url(),
+            title: z.string(),
+            status: z.number().int(),
+            detail: z.string(),
+            instance: z.string().url(),
+            code: z.string(),
+          })
+          .partial()
+          .passthrough(),
+      },
+      {
+        status: 401,
+        description: `Missing or invalid API key`,
+        schema: z
+          .object({
+            type: z.string().url(),
+            title: z.string(),
+            status: z.number().int(),
+            detail: z.string(),
+            instance: z.string().url(),
+            code: z.string(),
+          })
+          .partial()
+          .passthrough(),
+      },
+    ],
+  },
+  {
+    method: 'post',
+    path: '/v1/links/policies/:policyId/approve',
+    alias: 'approveLinkPolicy',
+    requestFormat: 'json',
+    parameters: [
+      {
+        name: 'body',
+        type: 'Body',
+        schema: z
+          .object({ note: z.string().max(2000) })
+          .partial()
+          .passthrough()
+          .optional(),
+      },
+      {
+        name: 'policyId',
+        type: 'Path',
+        schema: z.string().regex(/^pol_[0-9A-HJKMNP-TV-Z]{26}$/),
+      },
+      {
+        name: 'Idempotency-Key',
+        type: 'Header',
+        schema: z.string().min(1).max(128),
+      },
+    ],
+    response: z
+      .object({
+        data: z
+          .object({
+            policyId: z.string().regex(/^pol_[0-9A-HJKMNP-TV-Z]{26}$/),
+            consortiumId: z.string().regex(/^cns_[0-9A-HJKMNP-TV-Z]{26}$/),
+            channelId: z.string().min(1).max(128),
+            lawfulBasis: z.string().optional(),
+            retentionIntent: z.string().optional(),
+            crossBorder: z.boolean().optional(),
+            approvalStatus: z.enum([
+              'draft',
+              'pending_counsel',
+              'approved',
+              'rejected',
+            ]),
+            counselNote: z.string().optional(),
+            createdAt: z.string().datetime({ offset: true }),
+            decidedAt: z.string().datetime({ offset: true }).optional(),
+          })
+          .passthrough(),
+        meta: z
+          .object({
+            requestId: z.string().uuid(),
+            correlationId: z.string(),
+            generatedAt: z.string().datetime({ offset: true }),
+          })
+          .partial()
+          .passthrough()
+          .optional(),
+      })
+      .passthrough(),
+    errors: [
+      {
+        status: 401,
+        description: `Missing or invalid API key`,
+        schema: z
+          .object({
+            type: z.string().url(),
+            title: z.string(),
+            status: z.number().int(),
+            detail: z.string(),
+            instance: z.string().url(),
+            code: z.string(),
+          })
+          .partial()
+          .passthrough(),
+      },
+      {
+        status: 404,
+        description: `Resource not found`,
+        schema: z
+          .object({
+            type: z.string().url(),
+            title: z.string(),
+            status: z.number().int(),
+            detail: z.string(),
+            instance: z.string().url(),
+            code: z.string(),
+          })
+          .partial()
+          .passthrough(),
+      },
+    ],
+  },
+  {
+    method: 'post',
+    path: '/v1/links/policies/:policyId/reject',
+    alias: 'rejectLinkPolicy',
+    requestFormat: 'json',
+    parameters: [
+      {
+        name: 'body',
+        type: 'Body',
+        schema: z
+          .object({ note: z.string().max(2000) })
+          .partial()
+          .passthrough(),
+      },
+      {
+        name: 'policyId',
+        type: 'Path',
+        schema: z.string().regex(/^pol_[0-9A-HJKMNP-TV-Z]{26}$/),
+      },
+      {
+        name: 'Idempotency-Key',
+        type: 'Header',
+        schema: z.string().min(1).max(128),
+      },
+    ],
+    response: z
+      .object({
+        data: z
+          .object({
+            policyId: z.string().regex(/^pol_[0-9A-HJKMNP-TV-Z]{26}$/),
+            consortiumId: z.string().regex(/^cns_[0-9A-HJKMNP-TV-Z]{26}$/),
+            channelId: z.string().min(1).max(128),
+            lawfulBasis: z.string().optional(),
+            retentionIntent: z.string().optional(),
+            crossBorder: z.boolean().optional(),
+            approvalStatus: z.enum([
+              'draft',
+              'pending_counsel',
+              'approved',
+              'rejected',
+            ]),
+            counselNote: z.string().optional(),
+            createdAt: z.string().datetime({ offset: true }),
+            decidedAt: z.string().datetime({ offset: true }).optional(),
+          })
+          .passthrough(),
+        meta: z
+          .object({
+            requestId: z.string().uuid(),
+            correlationId: z.string(),
+            generatedAt: z.string().datetime({ offset: true }),
+          })
+          .partial()
+          .passthrough()
+          .optional(),
+      })
+      .passthrough(),
+    errors: [
+      {
+        status: 401,
+        description: `Missing or invalid API key`,
+        schema: z
+          .object({
+            type: z.string().url(),
+            title: z.string(),
+            status: z.number().int(),
+            detail: z.string(),
+            instance: z.string().url(),
+            code: z.string(),
+          })
+          .partial()
+          .passthrough(),
+      },
+      {
+        status: 404,
+        description: `Resource not found`,
+        schema: z
+          .object({
+            type: z.string().url(),
+            title: z.string(),
+            status: z.number().int(),
+            detail: z.string(),
+            instance: z.string().url(),
+            code: z.string(),
+          })
+          .partial()
+          .passthrough(),
+      },
+    ],
+  },
+]);
+
+export const api: any = new Zodios(
+  'https://api.ddd-codegen-starter.local/v1',
+  endpoints
+);
+
+export function createApiClient(baseUrl: string, options?: ZodiosOptions): any {
+  return new Zodios(baseUrl, endpoints, options);
+}

@@ -1,0 +1,166 @@
+openapi: 3.1.0
+info:
+  title: Erasures schemas
+  version: 0.1.0
+paths: {}
+components:
+  schemas:
+    LogicalErasureStatus:
+      type: string
+      enum: [queued, in_progress, completed, failed, sla_breach]
+
+    HolderAck:
+      type: object
+      required: [participantId, status]
+      properties:
+        participantId:
+          $ref: ./common/primitives.yaml#/components/schemas/ParticipantId
+        status:
+          type: string
+          enum: [pending, acknowledged, failed, recreation_blocked]
+        acknowledgedAt:
+          type: string
+          format: date-time
+        lastNudgedAt:
+          type: string
+          format: date-time
+
+    LogicalErasure:
+      type: object
+      required: [erasureId, vaultId, status, erasureReason, createdAt]
+      properties:
+        erasureId:
+          $ref: ./common/primitives.yaml#/components/schemas/ErasureId
+        vaultId:
+          $ref: ./common/primitives.yaml#/components/schemas/VaultId
+        pseudonymId:
+          $ref: ./common/primitives.yaml#/components/schemas/PseudonymId
+        certificateId:
+          $ref: ./common/primitives.yaml#/components/schemas/CertificateId
+        status:
+          $ref: '#/components/schemas/LogicalErasureStatus'
+        erasureReason:
+          type: string
+        holders:
+          type: array
+          items:
+            $ref: '#/components/schemas/HolderAck'
+        slaDeadlineAt:
+          type: string
+          format: date-time
+        createdAt:
+          type: string
+          format: date-time
+        completedAt:
+          type: string
+          format: date-time
+
+    LogicalErasureRequest:
+      type: object
+      required: [vaultId, erasureReason]
+      properties:
+        vaultId:
+          $ref: ./common/primitives.yaml#/components/schemas/VaultId
+        erasureReason:
+          type: string
+          minLength: 1
+          maxLength: 1000
+        notifyParticipants:
+          type: boolean
+          default: true
+
+    ErasureCertificate:
+      type: object
+      required: [certificateId, vaultId, anonymisedAt, proofHash]
+      properties:
+        certificateId:
+          $ref: ./common/primitives.yaml#/components/schemas/CertificateId
+        erasureId:
+          $ref: ./common/primitives.yaml#/components/schemas/ErasureId
+        vaultId:
+          $ref: ./common/primitives.yaml#/components/schemas/VaultId
+        pseudonymId:
+          $ref: ./common/primitives.yaml#/components/schemas/PseudonymId
+        anonymisedAt:
+          type: string
+          format: date-time
+        proofHash:
+          type: string
+        recreationBlocked:
+          type: boolean
+          description: BR-12 — no unilateral recreation of destroyed links.
+
+    PropagationStatus:
+      type: object
+      required: [erasureId, slaDeadlineAt, holders]
+      properties:
+        erasureId:
+          $ref: ./common/primitives.yaml#/components/schemas/ErasureId
+        slaDeadlineAt:
+          type: string
+          format: date-time
+        slaBreached:
+          type: boolean
+        holders:
+          type: array
+          items:
+            $ref: '#/components/schemas/HolderAck'
+        recreationAttempts:
+          type: integer
+          minimum: 0
+
+    NudgePropagationRequest:
+      type: object
+      required: [participantId]
+      properties:
+        participantId:
+          $ref: ./common/primitives.yaml#/components/schemas/ParticipantId
+        message:
+          type: string
+
+    LogicalErasureResponse:
+      type: object
+      required: [data]
+      properties:
+        data:
+          $ref: '#/components/schemas/LogicalErasure'
+        meta:
+          $ref: ./common/envelopes.yaml#/components/schemas/ResponseMeta
+
+    LogicalErasureListData:
+      type: object
+      required: [items]
+      properties:
+        items:
+          type: array
+          items:
+            $ref: '#/components/schemas/LogicalErasure'
+        nextCursor:
+          type: string
+
+    LogicalErasureListResponse:
+      type: object
+      required: [data]
+      properties:
+        data:
+          $ref: '#/components/schemas/LogicalErasureListData'
+        meta:
+          $ref: ./common/envelopes.yaml#/components/schemas/ResponseMeta
+
+    ErasureCertificateResponse:
+      type: object
+      required: [data]
+      properties:
+        data:
+          $ref: '#/components/schemas/ErasureCertificate'
+        meta:
+          $ref: ./common/envelopes.yaml#/components/schemas/ResponseMeta
+
+    PropagationStatusResponse:
+      type: object
+      required: [data]
+      properties:
+        data:
+          $ref: '#/components/schemas/PropagationStatus'
+        meta:
+          $ref: ./common/envelopes.yaml#/components/schemas/ResponseMeta

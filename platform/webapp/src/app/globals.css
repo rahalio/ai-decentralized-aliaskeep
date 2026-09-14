@@ -1,0 +1,36 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  --color-ink: #e8edf2;
+  --color-charcoal-950: #0c0f14;
+  --color-charcoal-900: #151a22;
+  --color-graphite: #8a96a5;
+  --color-link: #2ec4b6;
+  --color-link-dim: #1a6f68;
+  --color-amber: #e0a12b;
+  --color-coral: #e85d4c;
+  --color-seal: #9aa4b2;
+  --color-brand: #7fe7dc;
+}
+
+html,
+body {
+  min-height: 100%;
+  background: var(--color-charcoal-950);
+  color: var(--color-ink);
+}
+
+body {
+  background-image:
+    radial-gradient(ellipse at top, rgba(46, 196, 182, 0.08), transparent 55%),
+    linear-gradient(180deg, #0c0f14 0%, #11161e 100%);
+}
+
+.lock-grid {
+  background-image:
+    linear-gradient(rgba(138, 150, 165, 0.06) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(138, 150, 165, 0.06) 1px, transparent 1px);
+  background-size: 24px 24px;
+}

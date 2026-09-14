@@ -1,0 +1,160 @@
+openapi: 3.1.0
+info:
+  title: Participants API
+  version: 0.1.0
+  description: |
+    Consortium participant onboarding — jurisdiction, GDPR role, channel membership,
+    and attestation lock before link allocation (BR-5).
+  license:
+    name: Proprietary
+    url: https://aliaskeep.local/license
+  x-domain: prt
+servers:
+  - url: https://api.aliaskeep.local
+security:
+  - bearerAuth: []
+  - apiKey: []
+tags:
+  - name: Participants
+    description: Onboarding and attestation
+paths:
+  /v1/participants:
+    get:
+      operationId: listParticipants
+      tags: [Participants]
+      summary: List participants
+      parameters:
+        - $ref: ./common/parameters.yaml#/components/parameters/Cursor
+        - $ref: ./common/parameters.yaml#/components/parameters/Limit
+        - name: consortiumId
+          in: query
+          schema:
+            $ref: ./common/primitives.yaml#/components/schemas/ConsortiumId
+        - name: onboardingStatus
+          in: query
+          schema:
+            type: string
+            enum: [pending, attested, revoked]
+      responses:
+        '200':
+          description: Participants page
+          content:
+            application/json:
+              schema:
+                $ref: ./participants.schemas.yaml#/components/schemas/ParticipantListResponse
+        '401':
+          $ref: ./common/responses.yaml#/components/responses/Unauthorized
+        default:
+          $ref: ./common/responses.yaml#/components/responses/Problem
+    post:
+      operationId: onboardParticipant
+      tags: [Participants]
+      summary: Start participant onboarding
+      parameters:
+        - $ref: ./common/parameters.yaml#/components/parameters/IdempotencyKey
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: ./participants.schemas.yaml#/components/schemas/ParticipantCreateRequest
+      responses:
+        '201':
+          description: Participant created (pending attestation)
+          content:
+            application/json:
+              schema:
+                $ref: ./participants.schemas.yaml#/components/schemas/ParticipantResponse
+        '400':
+          $ref: ./common/responses.yaml#/components/responses/BadRequest
+        '401':
+          $ref: ./common/responses.yaml#/components/responses/Unauthorized
+        default:
+          $ref: ./common/responses.yaml#/components/responses/Problem
+
+  /v1/participants/{participantId}:
+    get:
+      operationId: getParticipant
+      tags: [Participants]
+      summary: Get participant
+      parameters:
+        - $ref: ./common/parameters.yaml#/components/parameters/ParticipantIdPath
+      responses:
+        '200':
+          description: Participant
+          content:
+            application/json:
+              schema:
+                $ref: ./participants.schemas.yaml#/components/schemas/ParticipantResponse
+        '401':
+          $ref: ./common/responses.yaml#/components/responses/Unauthorized
+        '404':
+          $ref: ./common/responses.yaml#/components/responses/NotFound
+        default:
+          $ref: ./common/responses.yaml#/components/responses/Problem
+
+  /v1/participants/{participantId}/attest:
+    post:
+      operationId: attestParticipant
+      tags: [Participants]
+      summary: Complete jurisdiction / GDPR role attestation (unlocks link grants)
+      parameters:
+        - $ref: ./common/parameters.yaml#/components/parameters/ParticipantIdPath
+        - $ref: ./common/parameters.yaml#/components/parameters/IdempotencyKey
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: ./participants.schemas.yaml#/components/schemas/ParticipantAttestRequest
+      responses:
+        '200':
+          description: Attested
+          content:
+            application/json:
+              schema:
+                $ref: ./participants.schemas.yaml#/components/schemas/ParticipantResponse
+        '400':
+          $ref: ./common/responses.yaml#/components/responses/BadRequest
+        '401':
+          $ref: ./common/responses.yaml#/components/responses/Unauthorized
+        '404':
+          $ref: ./common/responses.yaml#/components/responses/NotFound
+        default:
+          $ref: ./common/responses.yaml#/components/responses/Problem
+
+  /v1/participants/{participantId}/revoke:
+    post:
+      operationId: revokeParticipant
+      tags: [Participants]
+      summary: Revoke participant link rights
+      parameters:
+        - $ref: ./common/parameters.yaml#/components/parameters/ParticipantIdPath
+        - $ref: ./common/parameters.yaml#/components/parameters/IdempotencyKey
+      requestBody:
+        required: false
+        content:
+          application/json:
+            schema:
+              $ref: ./participants.schemas.yaml#/components/schemas/ParticipantRevokeRequest
+      responses:
+        '200':
+          description: Revoked
+          content:
+            application/json:
+              schema:
+                $ref: ./participants.schemas.yaml#/components/schemas/ParticipantResponse
+        '401':
+          $ref: ./common/responses.yaml#/components/responses/Unauthorized
+        '404':
+          $ref: ./common/responses.yaml#/components/responses/NotFound
+        default:
+          $ref: ./common/responses.yaml#/components/responses/Problem
+
+components:
+  securitySchemes:
+    apiKey:
+      $ref: ./common/security.yaml#/components/securitySchemes/apiKey
+    bearerAuth:
+      $ref: ./common/security.yaml#/components/securitySchemes/bearerAuth
+

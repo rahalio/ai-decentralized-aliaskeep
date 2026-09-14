@@ -1,0 +1,125 @@
+openapi: 3.1.0
+info:
+  title: Fabric identity advisory API
+  version: 0.1.0
+  description: |
+    Fabric enrollment CSR attribute risk flags; Identity Mixer / strip guidance (BR-6).
+  license:
+    name: Proprietary
+    url: https://aliaskeep.local/license
+  x-domain: fab
+servers:
+  - url: https://api.aliaskeep.local
+security:
+  - bearerAuth: []
+  - apiKey: []
+tags:
+  - name: Fabric
+    description: Fabric identity advisory
+paths:
+  /v1/fabric/profiles:
+    get:
+      operationId: listFabricIdentityProfiles
+      tags: [Fabric]
+      summary: List Fabric enrollment identity profiles
+      parameters:
+        - $ref: ./common/parameters.yaml#/components/parameters/Cursor
+        - $ref: ./common/parameters.yaml#/components/parameters/Limit
+        - name: riskLevel
+          in: query
+          schema:
+            type: string
+            enum: [clear, warn, block]
+      responses:
+        '200':
+          description: Profiles page
+          content:
+            application/json:
+              schema:
+                $ref: ./fabric.schemas.yaml#/components/schemas/FabricProfileListResponse
+        '401':
+          $ref: ./common/responses.yaml#/components/responses/Unauthorized
+        default:
+          $ref: ./common/responses.yaml#/components/responses/Problem
+    post:
+      operationId: submitFabricEnrollmentScan
+      tags: [Fabric]
+      summary: Scan CSR / enrollment attributes for PD risk
+      parameters:
+        - $ref: ./common/parameters.yaml#/components/parameters/IdempotencyKey
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: ./fabric.schemas.yaml#/components/schemas/FabricEnrollmentScanRequest
+      responses:
+        '201':
+          description: Profile advisory created
+          content:
+            application/json:
+              schema:
+                $ref: ./fabric.schemas.yaml#/components/schemas/FabricProfileResponse
+        '400':
+          $ref: ./common/responses.yaml#/components/responses/BadRequest
+        '401':
+          $ref: ./common/responses.yaml#/components/responses/Unauthorized
+        default:
+          $ref: ./common/responses.yaml#/components/responses/Problem
+
+  /v1/fabric/profiles/{profileId}:
+    get:
+      operationId: getFabricIdentityProfile
+      tags: [Fabric]
+      summary: Get Fabric identity advisory profile
+      parameters:
+        - $ref: ./common/parameters.yaml#/components/parameters/FabricProfileIdPath
+      responses:
+        '200':
+          description: Profile
+          content:
+            application/json:
+              schema:
+                $ref: ./fabric.schemas.yaml#/components/schemas/FabricProfileResponse
+        '401':
+          $ref: ./common/responses.yaml#/components/responses/Unauthorized
+        '404':
+          $ref: ./common/responses.yaml#/components/responses/NotFound
+        default:
+          $ref: ./common/responses.yaml#/components/responses/Problem
+
+  /v1/fabric/profiles/{profileId}/require-path:
+    post:
+      operationId: requireFabricIdentityPath
+      tags: [Fabric]
+      summary: Require strip X.509 PD or Identity Mixer path
+      parameters:
+        - $ref: ./common/parameters.yaml#/components/parameters/FabricProfileIdPath
+        - $ref: ./common/parameters.yaml#/components/parameters/IdempotencyKey
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: ./fabric.schemas.yaml#/components/schemas/RequireFabricPathRequest
+      responses:
+        '200':
+          description: Path required
+          content:
+            application/json:
+              schema:
+                $ref: ./fabric.schemas.yaml#/components/schemas/FabricProfileResponse
+        '401':
+          $ref: ./common/responses.yaml#/components/responses/Unauthorized
+        '404':
+          $ref: ./common/responses.yaml#/components/responses/NotFound
+        default:
+          $ref: ./common/responses.yaml#/components/responses/Problem
+
+components:
+  securitySchemes:
+    apiKey:
+      $ref: ./common/security.yaml#/components/securitySchemes/apiKey
+    bearerAuth:
+      $ref: ./common/security.yaml#/components/securitySchemes/bearerAuth
+

@@ -1,0 +1,18 @@
+{
+  "name": "@aliaskeep/openapi-core",
+  "version": "0.1.0",
+  "private": true,
+  "description": "OpenAPI contracts for Aliaskeep (common + identity + product domains)",
+  "scripts": {
+    "lint:domains": "redocly lint",
+    "bundle:domains": "mkdir -p src/.bundled && redocly bundle identity --output src/.bundled/identity.openapi.yaml && redocly bundle identity --output src/.bundled/identity.json && redocly bundle vaults --output src/.bundled/vaults.openapi.yaml && redocly bundle vaults --output src/.bundled/vaults.json && redocly bundle links --output src/.bundled/links.openapi.yaml && redocly bundle links --output src/.bundled/links.json && redocly bundle erasures --output src/.bundled/erasures.openapi.yaml && redocly bundle erasures --output src/.bundled/erasures.json && redocly bundle classification --output src/.bundled/classification.openapi.yaml && redocly bundle classification --output src/.bundled/classification.json && redocly bundle participants --output src/.bundled/participants.openapi.yaml && redocly bundle participants --output src/.bundled/participants.json && redocly bundle fabric --output src/.bundled/fabric.openapi.yaml && redocly bundle fabric --output src/.bundled/fabric.json && redocly bundle reporting --output src/.bundled/reporting.openapi.yaml && redocly bundle reporting --output src/.bundled/reporting.json",
+    "lint": "pnpm run lint:domains",
+    "bundle": "pnpm run bundle:domains"
+  },
+  "devDependencies": {
+    "@redocly/cli": "^1.34.0"
+  },
+  "engines": {
+    "node": ">=18"
+  }
+}

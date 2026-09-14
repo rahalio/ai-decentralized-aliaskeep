@@ -1,0 +1,34 @@
+apis:
+  identity:
+    root: src/identity.yaml
+  vaults:
+    root: src/vaults.yaml
+  links:
+    root: src/links.yaml
+  erasures:
+    root: src/erasures.yaml
+  classification:
+    root: src/classification.yaml
+  participants:
+    root: src/participants.yaml
+  fabric:
+    root: src/fabric.yaml
+  reporting:
+    root: src/reporting.yaml
+
+extends:
+  - recommended
+
+rules:
+  no-unused-components: off
+  operation-4xx-response: warn
+  info-license: off
+  info-license-url: off
+  tag-description: off
+  operation-operationId: error
+  no-invalid-media-type-examples: off
+
+theme:
+  openapi:
+    generateCodeSamples:
+      languages: []

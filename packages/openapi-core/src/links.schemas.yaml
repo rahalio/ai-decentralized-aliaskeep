@@ -1,0 +1,192 @@
+openapi: 3.1.0
+info:
+  title: Links schemas
+  version: 0.1.0
+paths: {}
+components:
+  schemas:
+    LinkGrantStatus:
+      type: string
+      enum: [active, revoked, suspended]
+
+    LinkGrant:
+      type: object
+      required: [grantId, vaultId, participantId, channelId, status, lawfulBasis, createdAt]
+      properties:
+        grantId:
+          $ref: ./common/primitives.yaml#/components/schemas/LinkGrantId
+        vaultId:
+          $ref: ./common/primitives.yaml#/components/schemas/VaultId
+        participantId:
+          $ref: ./common/primitives.yaml#/components/schemas/ParticipantId
+        channelId:
+          $ref: ./common/primitives.yaml#/components/schemas/ChannelId
+        policyId:
+          $ref: ./common/primitives.yaml#/components/schemas/LinkPolicyId
+        lawfulBasis:
+          type: string
+        retentionIntent:
+          type: string
+        status:
+          $ref: '#/components/schemas/LinkGrantStatus'
+        lastAccessedAt:
+          type: string
+          format: date-time
+        suspensionReason:
+          type: string
+        createdAt:
+          type: string
+          format: date-time
+        revokedAt:
+          type: string
+          format: date-time
+
+    LinkGrantCreateRequest:
+      type: object
+      required: [vaultId, participantId, channelId, lawfulBasis, policyId]
+      properties:
+        vaultId:
+          $ref: ./common/primitives.yaml#/components/schemas/VaultId
+        participantId:
+          $ref: ./common/primitives.yaml#/components/schemas/ParticipantId
+        channelId:
+          $ref: ./common/primitives.yaml#/components/schemas/ChannelId
+        policyId:
+          $ref: ./common/primitives.yaml#/components/schemas/LinkPolicyId
+        lawfulBasis:
+          type: string
+        retentionIntent:
+          type: string
+
+    RevokeLinkGrantRequest:
+      type: object
+      properties:
+        reason:
+          type: string
+
+    SuspendLinkGrantRequest:
+      type: object
+      required: [reason]
+      properties:
+        reason:
+          type: string
+          minLength: 1
+          maxLength: 500
+        note:
+          type: string
+          description: Explicit that this is not anonymisation (BR-10).
+
+    LinkPolicyApprovalStatus:
+      type: string
+      enum: [draft, pending_counsel, approved, rejected]
+
+    LinkPolicy:
+      type: object
+      required: [policyId, consortiumId, channelId, approvalStatus, createdAt]
+      properties:
+        policyId:
+          $ref: ./common/primitives.yaml#/components/schemas/LinkPolicyId
+        consortiumId:
+          $ref: ./common/primitives.yaml#/components/schemas/ConsortiumId
+        channelId:
+          $ref: ./common/primitives.yaml#/components/schemas/ChannelId
+        lawfulBasis:
+          type: string
+        retentionIntent:
+          type: string
+        crossBorder:
+          type: boolean
+        approvalStatus:
+          $ref: '#/components/schemas/LinkPolicyApprovalStatus'
+        counselNote:
+          type: string
+        createdAt:
+          type: string
+          format: date-time
+        decidedAt:
+          type: string
+          format: date-time
+
+    LinkPolicyCreateRequest:
+      type: object
+      required: [consortiumId, channelId, lawfulBasis]
+      properties:
+        consortiumId:
+          $ref: ./common/primitives.yaml#/components/schemas/ConsortiumId
+        channelId:
+          $ref: ./common/primitives.yaml#/components/schemas/ChannelId
+        lawfulBasis:
+          type: string
+        retentionIntent:
+          type: string
+        crossBorder:
+          type: boolean
+          default: false
+        submitToCounsel:
+          type: boolean
+          default: true
+
+    CounselDecisionRequest:
+      type: object
+      properties:
+        note:
+          type: string
+          maxLength: 2000
+
+    LinkGrantResponse:
+      type: object
+      required: [data]
+      properties:
+        data:
+          $ref: '#/components/schemas/LinkGrant'
+        meta:
+          $ref: ./common/envelopes.yaml#/components/schemas/ResponseMeta
+
+    LinkGrantListData:
+      type: object
+      required: [items]
+      properties:
+        items:
+          type: array
+          items:
+            $ref: '#/components/schemas/LinkGrant'
+        nextCursor:
+          type: string
+
+    LinkGrantListResponse:
+      type: object
+      required: [data]
+      properties:
+        data:
+          $ref: '#/components/schemas/LinkGrantListData'
+        meta:
+          $ref: ./common/envelopes.yaml#/components/schemas/ResponseMeta
+
+    LinkPolicyResponse:
+      type: object
+      required: [data]
+      properties:
+        data:
+          $ref: '#/components/schemas/LinkPolicy'
+        meta:
+          $ref: ./common/envelopes.yaml#/components/schemas/ResponseMeta
+
+    LinkPolicyListData:
+      type: object
+      required: [items]
+      properties:
+        items:
+          type: array
+          items:
+            $ref: '#/components/schemas/LinkPolicy'
+        nextCursor:
+          type: string
+
+    LinkPolicyListResponse:
+      type: object
+      required: [data]
+      properties:
+        data:
+          $ref: '#/components/schemas/LinkPolicyListData'
+        meta:
+          $ref: ./common/envelopes.yaml#/components/schemas/ResponseMeta

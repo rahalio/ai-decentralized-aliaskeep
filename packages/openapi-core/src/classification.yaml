@@ -1,0 +1,232 @@
+openapi: 3.1.0
+info:
+  title: Classification API
+  version: 0.1.0
+  description: |
+    Pre-endorsement PD scanning, quarantine, remediate/waive/reject, and upload
+    storage disclosure (BR-4, BR-9, BR-11).
+  license:
+    name: Proprietary
+    url: https://aliaskeep.local/license
+  x-domain: cls
+servers:
+  - url: https://api.aliaskeep.local
+security:
+  - apiKey: []
+  - bearerAuth: []
+tags:
+  - name: Classification
+    description: Scans and quarantine
+  - name: Disclosure
+    description: Upload / free-text storage disclosure
+paths:
+  /v1/classification/scans:
+    post:
+      operationId: submitClassificationScan
+      tags: [Classification]
+      summary: Submit content for PD classification before endorse
+      parameters:
+        - $ref: ./common/parameters.yaml#/components/parameters/IdempotencyKey
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: ./classification.schemas.yaml#/components/schemas/ClassificationScanRequest
+      responses:
+        '200':
+          description: Scan result (allow)
+          content:
+            application/json:
+              schema:
+                $ref: ./classification.schemas.yaml#/components/schemas/ClassificationScanResponse
+        '422':
+          description: PD detected; quarantine required
+          content:
+            application/json:
+              schema:
+                $ref: ./classification.schemas.yaml#/components/schemas/ClassificationScanResponse
+        '401':
+          $ref: ./common/responses.yaml#/components/responses/Unauthorized
+        default:
+          $ref: ./common/responses.yaml#/components/responses/Problem
+
+  /v1/classification/quarantine:
+    get:
+      operationId: listQuarantineItems
+      tags: [Classification]
+      summary: List quarantine holds
+      parameters:
+        - $ref: ./common/parameters.yaml#/components/parameters/Cursor
+        - $ref: ./common/parameters.yaml#/components/parameters/Limit
+        - name: status
+          in: query
+          schema:
+            type: string
+            enum: [held, remediated, waived, rejected]
+      responses:
+        '200':
+          description: Quarantine page
+          content:
+            application/json:
+              schema:
+                $ref: ./classification.schemas.yaml#/components/schemas/QuarantineListResponse
+        '401':
+          $ref: ./common/responses.yaml#/components/responses/Unauthorized
+        default:
+          $ref: ./common/responses.yaml#/components/responses/Problem
+
+  /v1/classification/quarantine/{quarantineId}:
+    get:
+      operationId: getQuarantineItem
+      tags: [Classification]
+      summary: Get quarantine item (redacted preview)
+      parameters:
+        - $ref: ./common/parameters.yaml#/components/parameters/QuarantineIdPath
+      responses:
+        '200':
+          description: Quarantine item
+          content:
+            application/json:
+              schema:
+                $ref: ./classification.schemas.yaml#/components/schemas/QuarantineItemResponse
+        '401':
+          $ref: ./common/responses.yaml#/components/responses/Unauthorized
+        '404':
+          $ref: ./common/responses.yaml#/components/responses/NotFound
+        default:
+          $ref: ./common/responses.yaml#/components/responses/Problem
+
+  /v1/classification/quarantine/{quarantineId}/remediate:
+    post:
+      operationId: remediateQuarantineItem
+      tags: [Classification]
+      summary: Remediate held content and clear write gate
+      parameters:
+        - $ref: ./common/parameters.yaml#/components/parameters/QuarantineIdPath
+        - $ref: ./common/parameters.yaml#/components/parameters/IdempotencyKey
+      requestBody:
+        required: false
+        content:
+          application/json:
+            schema:
+              $ref: ./classification.schemas.yaml#/components/schemas/QuarantineActionRequest
+      responses:
+        '200':
+          description: Remediated
+          content:
+            application/json:
+              schema:
+                $ref: ./classification.schemas.yaml#/components/schemas/QuarantineItemResponse
+        '401':
+          $ref: ./common/responses.yaml#/components/responses/Unauthorized
+        '404':
+          $ref: ./common/responses.yaml#/components/responses/NotFound
+        default:
+          $ref: ./common/responses.yaml#/components/responses/Problem
+
+  /v1/classification/quarantine/{quarantineId}/waive:
+    post:
+      operationId: waiveQuarantineItem
+      tags: [Classification]
+      summary: Explicit risk waiver for low-confidence hold (BR-9)
+      parameters:
+        - $ref: ./common/parameters.yaml#/components/parameters/QuarantineIdPath
+        - $ref: ./common/parameters.yaml#/components/parameters/IdempotencyKey
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: ./classification.schemas.yaml#/components/schemas/RiskWaiverRequest
+      responses:
+        '200':
+          description: Waived
+          content:
+            application/json:
+              schema:
+                $ref: ./classification.schemas.yaml#/components/schemas/QuarantineItemResponse
+        '401':
+          $ref: ./common/responses.yaml#/components/responses/Unauthorized
+        '404':
+          $ref: ./common/responses.yaml#/components/responses/NotFound
+        default:
+          $ref: ./common/responses.yaml#/components/responses/Problem
+
+  /v1/classification/quarantine/{quarantineId}/reject:
+    post:
+      operationId: rejectQuarantineItem
+      tags: [Classification]
+      summary: Reject write; keep blocked
+      parameters:
+        - $ref: ./common/parameters.yaml#/components/parameters/QuarantineIdPath
+        - $ref: ./common/parameters.yaml#/components/parameters/IdempotencyKey
+      requestBody:
+        required: false
+        content:
+          application/json:
+            schema:
+              $ref: ./classification.schemas.yaml#/components/schemas/QuarantineActionRequest
+      responses:
+        '200':
+          description: Rejected
+          content:
+            application/json:
+              schema:
+                $ref: ./classification.schemas.yaml#/components/schemas/QuarantineItemResponse
+        '401':
+          $ref: ./common/responses.yaml#/components/responses/Unauthorized
+        '404':
+          $ref: ./common/responses.yaml#/components/responses/NotFound
+        default:
+          $ref: ./common/responses.yaml#/components/responses/Problem
+
+  /v1/classification/disclosure:
+    get:
+      operationId: getUploadDisclosure
+      tags: [Disclosure]
+      summary: Get field→storage disclosure map (BR-11)
+      responses:
+        '200':
+          description: Disclosure
+          content:
+            application/json:
+              schema:
+                $ref: ./classification.schemas.yaml#/components/schemas/UploadDisclosureResponse
+        '401':
+          $ref: ./common/responses.yaml#/components/responses/Unauthorized
+        default:
+          $ref: ./common/responses.yaml#/components/responses/Problem
+    put:
+      operationId: publishUploadDisclosure
+      tags: [Disclosure]
+      summary: Publish upload storage disclosure
+      parameters:
+        - $ref: ./common/parameters.yaml#/components/parameters/IdempotencyKey
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: ./classification.schemas.yaml#/components/schemas/UploadDisclosurePublishRequest
+      responses:
+        '200':
+          description: Published
+          content:
+            application/json:
+              schema:
+                $ref: ./classification.schemas.yaml#/components/schemas/UploadDisclosureResponse
+        '400':
+          $ref: ./common/responses.yaml#/components/responses/BadRequest
+        '401':
+          $ref: ./common/responses.yaml#/components/responses/Unauthorized
+        default:
+          $ref: ./common/responses.yaml#/components/responses/Problem
+
+components:
+  securitySchemes:
+    apiKey:
+      $ref: ./common/security.yaml#/components/securitySchemes/apiKey
+    bearerAuth:
+      $ref: ./common/security.yaml#/components/securitySchemes/bearerAuth
+

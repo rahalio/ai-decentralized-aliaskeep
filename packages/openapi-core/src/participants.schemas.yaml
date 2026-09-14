@@ -1,0 +1,119 @@
+openapi: 3.1.0
+info:
+  title: Participants schemas
+  version: 0.1.0
+paths: {}
+components:
+  schemas:
+    GdprRole:
+      type: string
+      enum: [controller, processor, joint_controller]
+
+    OnboardingStatus:
+      type: string
+      enum: [pending, attested, revoked]
+
+    FabricIdentityMode:
+      type: string
+      enum: [x509_scrubbed, identity_mixer, not_configured]
+
+    Participant:
+      type: object
+      required: [participantId, consortiumId, name, onboardingStatus, createdAt]
+      properties:
+        participantId:
+          $ref: ./common/primitives.yaml#/components/schemas/ParticipantId
+        consortiumId:
+          $ref: ./common/primitives.yaml#/components/schemas/ConsortiumId
+        name:
+          type: string
+        jurisdiction:
+          type: string
+        gdprRole:
+          $ref: '#/components/schemas/GdprRole'
+        channelIds:
+          type: array
+          items:
+            $ref: ./common/primitives.yaml#/components/schemas/ChannelId
+        fabricIdentityMode:
+          $ref: '#/components/schemas/FabricIdentityMode'
+        onboardingStatus:
+          $ref: '#/components/schemas/OnboardingStatus'
+        linkAllocationLocked:
+          type: boolean
+          description: True until jurisdiction + GDPR role attested (BR-5).
+        attestedAt:
+          type: string
+          format: date-time
+        createdAt:
+          type: string
+          format: date-time
+
+    ParticipantCreateRequest:
+      type: object
+      required: [consortiumId, name, jurisdiction, gdprRole]
+      properties:
+        consortiumId:
+          $ref: ./common/primitives.yaml#/components/schemas/ConsortiumId
+        name:
+          type: string
+          minLength: 1
+          maxLength: 200
+        jurisdiction:
+          type: string
+        gdprRole:
+          $ref: '#/components/schemas/GdprRole'
+        channelIds:
+          type: array
+          items:
+            $ref: ./common/primitives.yaml#/components/schemas/ChannelId
+        fabricIdentityMode:
+          $ref: '#/components/schemas/FabricIdentityMode'
+
+    ParticipantAttestRequest:
+      type: object
+      required: [jurisdiction, gdprRole]
+      properties:
+        jurisdiction:
+          type: string
+        gdprRole:
+          $ref: '#/components/schemas/GdprRole'
+        channelIds:
+          type: array
+          items:
+            $ref: ./common/primitives.yaml#/components/schemas/ChannelId
+
+    ParticipantRevokeRequest:
+      type: object
+      properties:
+        reason:
+          type: string
+
+    ParticipantResponse:
+      type: object
+      required: [data]
+      properties:
+        data:
+          $ref: '#/components/schemas/Participant'
+        meta:
+          $ref: ./common/envelopes.yaml#/components/schemas/ResponseMeta
+
+    ParticipantListData:
+      type: object
+      required: [items]
+      properties:
+        items:
+          type: array
+          items:
+            $ref: '#/components/schemas/Participant'
+        nextCursor:
+          type: string
+
+    ParticipantListResponse:
+      type: object
+      required: [data]
+      properties:
+        data:
+          $ref: '#/components/schemas/ParticipantListData'
+        meta:
+          $ref: ./common/envelopes.yaml#/components/schemas/ResponseMeta

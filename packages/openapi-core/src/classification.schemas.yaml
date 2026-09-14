@@ -1,0 +1,189 @@
+openapi: 3.1.0
+info:
+  title: Classification schemas
+  version: 0.1.0
+paths: {}
+components:
+  schemas:
+    ClassificationDecision:
+      type: string
+      enum: [allow, quarantine, block]
+
+    ClassificationScanRequest:
+      type: object
+      required: [proposalRef, payloadType]
+      properties:
+        proposalRef:
+          type: string
+        payloadType:
+          type: string
+          enum: [json, text, pdf, image]
+        contentBase64:
+          type: string
+        channelId:
+          $ref: ./common/primitives.yaml#/components/schemas/ChannelId
+        fieldPath:
+          type: string
+
+    ClassificationScan:
+      type: object
+      required: [scanId, decision]
+      properties:
+        scanId:
+          $ref: ./common/primitives.yaml#/components/schemas/ScanId
+        decision:
+          $ref: '#/components/schemas/ClassificationDecision'
+        confidence:
+          type: number
+          minimum: 0
+          maximum: 1
+        detectedCategories:
+          type: array
+          items:
+            type: string
+        quarantineId:
+          $ref: ./common/primitives.yaml#/components/schemas/QuarantineId
+
+    QuarantineStatus:
+      type: string
+      enum: [held, remediated, waived, rejected]
+
+    QuarantineItem:
+      type: object
+      required: [quarantineId, scanId, status, confidence, createdAt]
+      properties:
+        quarantineId:
+          $ref: ./common/primitives.yaml#/components/schemas/QuarantineId
+        scanId:
+          $ref: ./common/primitives.yaml#/components/schemas/ScanId
+        status:
+          $ref: '#/components/schemas/QuarantineStatus'
+        confidence:
+          type: number
+        channelId:
+          $ref: ./common/primitives.yaml#/components/schemas/ChannelId
+        fieldPath:
+          type: string
+        detectedCategories:
+          type: array
+          items:
+            type: string
+        redactedPreview:
+          type: string
+        waiverNote:
+          type: string
+        createdAt:
+          type: string
+          format: date-time
+        resolvedAt:
+          type: string
+          format: date-time
+
+    QuarantineActionRequest:
+      type: object
+      properties:
+        note:
+          type: string
+
+    RiskWaiverRequest:
+      type: object
+      required: [riskAcceptance]
+      properties:
+        riskAcceptance:
+          type: string
+          minLength: 10
+          maxLength: 2000
+        note:
+          type: string
+
+    StorageMode:
+      type: string
+      enum: [off_chain_vault, hash_only, blocked]
+
+    DisclosureField:
+      type: object
+      required: [fieldPath, storageMode]
+      properties:
+        fieldPath:
+          type: string
+        storageMode:
+          $ref: '#/components/schemas/StorageMode'
+        endUserDisclosure:
+          type: string
+
+    UploadDisclosure:
+      type: object
+      required: [fields, published, version]
+      properties:
+        version:
+          type: string
+        published:
+          type: boolean
+        fields:
+          type: array
+          items:
+            $ref: '#/components/schemas/DisclosureField'
+        publishedAt:
+          type: string
+          format: date-time
+
+    UploadDisclosurePublishRequest:
+      type: object
+      required: [fields, version]
+      properties:
+        version:
+          type: string
+        fields:
+          type: array
+          items:
+            $ref: '#/components/schemas/DisclosureField'
+        requireAdapterAck:
+          type: boolean
+          default: true
+
+    ClassificationScanResponse:
+      type: object
+      required: [data]
+      properties:
+        data:
+          $ref: '#/components/schemas/ClassificationScan'
+        meta:
+          $ref: ./common/envelopes.yaml#/components/schemas/ResponseMeta
+
+    QuarantineItemResponse:
+      type: object
+      required: [data]
+      properties:
+        data:
+          $ref: '#/components/schemas/QuarantineItem'
+        meta:
+          $ref: ./common/envelopes.yaml#/components/schemas/ResponseMeta
+
+    QuarantineListData:
+      type: object
+      required: [items]
+      properties:
+        items:
+          type: array
+          items:
+            $ref: '#/components/schemas/QuarantineItem'
+        nextCursor:
+          type: string
+
+    QuarantineListResponse:
+      type: object
+      required: [data]
+      properties:
+        data:
+          $ref: '#/components/schemas/QuarantineListData'
+        meta:
+          $ref: ./common/envelopes.yaml#/components/schemas/ResponseMeta
+
+    UploadDisclosureResponse:
+      type: object
+      required: [data]
+      properties:
+        data:
+          $ref: '#/components/schemas/UploadDisclosure'
+        meta:
+          $ref: ./common/envelopes.yaml#/components/schemas/ResponseMeta

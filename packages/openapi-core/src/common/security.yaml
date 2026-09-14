@@ -1,0 +1,22 @@
+openapi: 3.1.0
+info:
+  title: Shared security schemes
+  version: 0.1.0
+  description: API-key auth for tenant-scoped APIs (tenant implied by key).
+paths: {}
+components:
+  securitySchemes:
+    apiKey:
+      type: apiKey
+      in: header
+      name: X-API-Key
+      description: |
+        Tenant API key. Implies tenant isolation — no cross-tenant reads.
+        Used by adapters / classification gates.
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+      description: |
+        Operator browser session JWT from identity `/v0/auth/login`.
+        Used by the Aliaskeep console (privacy architect, counsel, operators).

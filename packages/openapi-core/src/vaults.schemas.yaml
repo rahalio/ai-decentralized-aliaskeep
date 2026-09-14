@@ -1,0 +1,104 @@
+openapi: 3.1.0
+info:
+  title: Vaults schemas
+  version: 0.1.0
+paths: {}
+components:
+  schemas:
+    IdentityVaultStatus:
+      type: string
+      enum: [active, erased, orphan_review, duplicate_review]
+
+    IdentityVault:
+      type: object
+      required: [vaultId, consortiumId, status, createdAt]
+      properties:
+        vaultId:
+          $ref: ./common/primitives.yaml#/components/schemas/VaultId
+        consortiumId:
+          $ref: ./common/primitives.yaml#/components/schemas/ConsortiumId
+        pseudonymId:
+          $ref: ./common/primitives.yaml#/components/schemas/PseudonymId
+        controllerParticipantId:
+          $ref: ./common/primitives.yaml#/components/schemas/ParticipantId
+        jurisdiction:
+          type: string
+          description: ISO 3166-1 alpha-2 or region code for controller.
+        lawfulBasis:
+          type: string
+        status:
+          $ref: '#/components/schemas/IdentityVaultStatus'
+        bindStatus:
+          type: string
+          enum: [unbound, bound, conflict]
+        activeGrantCount:
+          type: integer
+          minimum: 0
+        createdAt:
+          type: string
+          format: date-time
+        updatedAt:
+          type: string
+          format: date-time
+
+    IdentityVaultCreateRequest:
+      type: object
+      required: [consortiumId, pseudonymId]
+      properties:
+        consortiumId:
+          $ref: ./common/primitives.yaml#/components/schemas/ConsortiumId
+        pseudonymId:
+          $ref: ./common/primitives.yaml#/components/schemas/PseudonymId
+        controllerParticipantId:
+          $ref: ./common/primitives.yaml#/components/schemas/ParticipantId
+        jurisdiction:
+          type: string
+        lawfulBasis:
+          type: string
+
+    BindPseudonymRequest:
+      type: object
+      required: [pseudonymId]
+      properties:
+        pseudonymId:
+          $ref: ./common/primitives.yaml#/components/schemas/PseudonymId
+
+    FlagDuplicateRequest:
+      type: object
+      required: [reason]
+      properties:
+        reason:
+          type: string
+          minLength: 1
+          maxLength: 500
+        relatedVaultId:
+          $ref: ./common/primitives.yaml#/components/schemas/VaultId
+
+    IdentityVaultResponse:
+      type: object
+      required: [data]
+      properties:
+        data:
+          $ref: '#/components/schemas/IdentityVault'
+        meta:
+          $ref: ./common/envelopes.yaml#/components/schemas/ResponseMeta
+
+    IdentityVaultListData:
+      type: object
+      required: [items]
+      properties:
+        items:
+          type: array
+          items:
+            $ref: '#/components/schemas/IdentityVault'
+        nextCursor:
+          type: string
+
+    IdentityVaultListResponse:
+      type: object
+      required: [data]
+      properties:
+        data:
+          $ref: '#/components/schemas/IdentityVaultListData'
+        meta:
+          $ref: ./common/envelopes.yaml#/components/schemas/ResponseMeta

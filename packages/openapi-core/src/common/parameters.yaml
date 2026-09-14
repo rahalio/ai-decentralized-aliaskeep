@@ -1,0 +1,105 @@
+openapi: 3.1.0
+info:
+  title: Shared parameters
+  version: 0.1.0
+  description: Path and header parameters shared across domain APIs.
+paths: {}
+components:
+  parameters:
+    IdempotencyKey:
+      name: Idempotency-Key
+      in: header
+      required: true
+      description: |
+        Client-supplied key for safe retries on mutating POSTs (≤128 chars).
+        Replay with the same key and body returns the original result; different
+        body with the same key yields 409.
+      schema:
+        type: string
+        minLength: 1
+        maxLength: 128
+    TenantIdPath:
+      name: tenantId
+      in: path
+      required: true
+      description: Tenant id (`tnt_…`).
+      schema:
+        $ref: ./primitives.yaml#/components/schemas/TenantId
+    UserIdPath:
+      name: userId
+      in: path
+      required: true
+      description: User id (`usr_…`).
+      schema:
+        $ref: ./primitives.yaml#/components/schemas/UserId
+    Cursor:
+      name: cursor
+      in: query
+      required: false
+      description: Opaque keyset cursor from a previous page.
+      schema:
+        type: string
+    Limit:
+      name: limit
+      in: query
+      required: false
+      description: Page size (default 50, max 200).
+      schema:
+        type: integer
+        minimum: 1
+        maximum: 200
+        default: 50
+    VaultIdPath:
+      name: vaultId
+      in: path
+      required: true
+      schema:
+        $ref: ./primitives.yaml#/components/schemas/VaultId
+    LinkGrantIdPath:
+      name: grantId
+      in: path
+      required: true
+      schema:
+        $ref: ./primitives.yaml#/components/schemas/LinkGrantId
+    LinkPolicyIdPath:
+      name: policyId
+      in: path
+      required: true
+      schema:
+        $ref: ./primitives.yaml#/components/schemas/LinkPolicyId
+    ErasureIdPath:
+      name: erasureId
+      in: path
+      required: true
+      schema:
+        $ref: ./primitives.yaml#/components/schemas/ErasureId
+    CertificateIdPath:
+      name: certificateId
+      in: path
+      required: true
+      schema:
+        $ref: ./primitives.yaml#/components/schemas/CertificateId
+    QuarantineIdPath:
+      name: quarantineId
+      in: path
+      required: true
+      schema:
+        $ref: ./primitives.yaml#/components/schemas/QuarantineId
+    ParticipantIdPath:
+      name: participantId
+      in: path
+      required: true
+      schema:
+        $ref: ./primitives.yaml#/components/schemas/ParticipantId
+    FabricProfileIdPath:
+      name: profileId
+      in: path
+      required: true
+      schema:
+        $ref: ./primitives.yaml#/components/schemas/FabricProfileId
+    ReportJobIdPath:
+      name: jobId
+      in: path
+      required: true
+      schema:
+        $ref: ./primitives.yaml#/components/schemas/ReportJobId

@@ -1,0 +1,102 @@
+openapi: 3.1.0
+info:
+  title: Shared primitives
+  version: 0.1.0
+  description: Prefixed IDs and money types shared across domains.
+paths: {}
+components:
+  schemas:
+    TenantId:
+      type: string
+      description: Prefixed ULID-style tenant identifier.
+      pattern: '^tnt_[0-9A-HJKMNP-TV-Z]{26}$'
+      example: tnt_01HZYXK8J0M0W5N6P7Q8R9S0T1U2
+    UserId:
+      type: string
+      description: Prefixed ULID-style tenant operator user identifier.
+      pattern: '^usr_[0-9A-HJKMNP-TV-Z]{26}$'
+      example: usr_01HZYXK8J0M0W5N6P7Q8R9S0T1U2
+    Currency:
+      type: string
+      description: ISO 4217 currency code.
+      minLength: 3
+      maxLength: 3
+      pattern: '^[A-Z]{3}$'
+      example: USD
+    Money:
+      type: object
+      description: Decimal-string amount + currency (never IEEE float).
+      required:
+        - amount
+        - currency
+      properties:
+        amount:
+          type: string
+          description: Signed decimal string with up to 5 fractional digits.
+          pattern: '^-?\d+(\.\d{1,5})?$'
+          example: "1234.56"
+        currency:
+          $ref: '#/components/schemas/Currency'
+    JobStatus:
+      type: string
+      description: Generic async job lifecycle.
+      enum:
+        - queued
+        - running
+        - done
+        - failed
+
+    # Aliaskeep product IDs
+    ConsortiumId:
+      type: string
+      pattern: '^cns_[0-9A-HJKMNP-TV-Z]{26}$'
+      description: Prefixed consortium identifier.
+    VaultId:
+      type: string
+      pattern: '^vlt_[0-9A-HJKMNP-TV-Z]{26}$'
+      description: Off-chain identity vault id.
+    PseudonymId:
+      type: string
+      pattern: '^psn_[0-9A-HJKMNP-TV-Z]{26}$'
+      description: On-chain pseudonym binding id.
+    ParticipantId:
+      type: string
+      pattern: '^prt_[0-9A-HJKMNP-TV-Z]{26}$'
+      description: Consortium participant id.
+    LinkGrantId:
+      type: string
+      pattern: '^lnk_[0-9A-HJKMNP-TV-Z]{26}$'
+      description: Link grant id.
+    LinkPolicyId:
+      type: string
+      pattern: '^pol_[0-9A-HJKMNP-TV-Z]{26}$'
+      description: Link allocation policy id.
+    ErasureId:
+      type: string
+      pattern: '^ers_[0-9A-HJKMNP-TV-Z]{26}$'
+      description: Logical erasure request id.
+    CertificateId:
+      type: string
+      pattern: '^crt_[0-9A-HJKMNP-TV-Z]{26}$'
+      description: Anonymisation / erasure certificate id.
+    ScanId:
+      type: string
+      pattern: '^cls_[0-9A-HJKMNP-TV-Z]{26}$'
+      description: Classification scan id.
+    QuarantineId:
+      type: string
+      pattern: '^qtn_[0-9A-HJKMNP-TV-Z]{26}$'
+      description: Quarantine hold id.
+    FabricProfileId:
+      type: string
+      pattern: '^fab_[0-9A-HJKMNP-TV-Z]{26}$'
+      description: Fabric enrollment identity profile id.
+    ReportJobId:
+      type: string
+      pattern: '^rpt_[0-9A-HJKMNP-TV-Z]{26}$'
+      description: Reporting / export job id.
+    ChannelId:
+      type: string
+      minLength: 1
+      maxLength: 128
+      description: Fabric channel identifier (opaque string).
