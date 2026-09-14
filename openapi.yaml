@@ -1,0 +1,439 @@
+openapi: 3.0.3
+info:
+  title: Aliaskeep
+  version: 0.1.0
+  description: >-
+    Pseudonymisation-link governance for permissioned blockchain consortia.
+    Off-chain identity vaults, link allocation and logical erasure, content
+    classification gates, and participant onboarding controls.
+  x-product-slug: ai-decentralized-aliaskeep
+  x-source: ai-in-decentralized+ai/GNQZVQR3/
+servers:
+  - url: https://api.example.com
+tags:
+  - name: Vaults
+    description: Off-chain identity vaults bound to on-chain pseudonyms
+  - name: Links
+    description: Link allocation, access grants, and revocation
+  - name: Erasures
+    description: Logical erasure and anonymisation proofs
+  - name: Classification
+    description: Pre-endorsement PD scanning and quarantine
+  - name: Participants
+    description: Consortium participant onboarding and jurisdiction controls
+  - name: Reporting
+    description: Link audit and regulatory exports
+paths:
+  /v1/vaults:
+    get:
+      operationId: listIdentityVaults
+      tags: [Vaults]
+      security:
+        - BearerAuth: []
+      parameters:
+        - $ref: "#/components/parameters/Cursor"
+        - $ref: "#/components/parameters/Limit"
+      responses:
+        "200":
+          description: Vaults page
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ListEnvelopeIdentityVault"
+    post:
+      operationId: createIdentityVault
+      tags: [Vaults]
+      security:
+        - BearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/IdentityVaultCreate"
+      responses:
+        "201":
+          description: Vault registered
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/DataEnvelopeIdentityVault"
+  /v1/vaults/{vaultId}:
+    parameters:
+      - $ref: "#/components/parameters/VaultId"
+    get:
+      operationId: getIdentityVault
+      tags: [Vaults]
+      security:
+        - BearerAuth: []
+      responses:
+        "200":
+          description: Vault
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/DataEnvelopeIdentityVault"
+  /v1/links/grants:
+    get:
+      operationId: listLinkGrants
+      tags: [Links]
+      security:
+        - BearerAuth: []
+      parameters:
+        - $ref: "#/components/parameters/Cursor"
+        - name: pseudonymId
+          in: query
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Link grants page
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ListEnvelopeLinkGrant"
+    post:
+      operationId: allocateLinkGrant
+      tags: [Links]
+      security:
+        - BearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/LinkGrantCreate"
+      responses:
+        "201":
+          description: Link grant allocated
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/DataEnvelopeLinkGrant"
+  /v1/links/grants/{grantId}/revoke:
+    parameters:
+      - name: grantId
+        in: path
+        required: true
+        schema:
+          type: string
+    post:
+      operationId: revokeLinkGrant
+      tags: [Links]
+      security:
+        - BearerAuth: []
+      responses:
+        "200":
+          description: Grant revoked
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/DataEnvelopeLinkGrant"
+  /v1/erasures:
+    post:
+      operationId: executeLogicalErasure
+      tags: [Erasures]
+      security:
+        - BearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/LogicalErasureRequest"
+      responses:
+        "202":
+          description: Erasure accepted
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/DataEnvelopeErasureCertificate"
+  /v1/erasures/{certificateId}:
+    parameters:
+      - name: certificateId
+        in: path
+        required: true
+        schema:
+          type: string
+    get:
+      operationId: getErasureCertificate
+      tags: [Erasures]
+      security:
+        - BearerAuth: []
+      responses:
+        "200":
+          description: Erasure certificate
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/DataEnvelopeErasureCertificate"
+  /v1/classification/scans:
+    post:
+      operationId: submitClassificationScan
+      tags: [Classification]
+      security:
+        - ApiKeyAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/ClassificationScanRequest"
+      responses:
+        "200":
+          description: Scan result
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/DataEnvelopeClassificationScan"
+        "422":
+          description: PD detected; quarantine required
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Problem"
+  /v1/participants:
+    get:
+      operationId: listParticipants
+      tags: [Participants]
+      security:
+        - BearerAuth: []
+      parameters:
+        - $ref: "#/components/parameters/Cursor"
+      responses:
+        "200":
+          description: Participants page
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ListEnvelopeParticipant"
+    post:
+      operationId: onboardParticipant
+      tags: [Participants]
+      security:
+        - BearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/ParticipantCreate"
+      responses:
+        "201":
+          description: Participant onboarded
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/DataEnvelopeParticipant"
+  /v1/reports/link-audit:
+    get:
+      operationId: getLinkAuditReport
+      tags: [Reporting]
+      security:
+        - BearerAuth: []
+      parameters:
+        - name: period
+          in: query
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Link governance audit export
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/DataEnvelopeLinkAuditReport"
+components:
+  securitySchemes:
+    ApiKeyAuth:
+      type: apiKey
+      in: header
+      name: X-API-Key
+    BearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+  parameters:
+    Cursor:
+      name: cursor
+      in: query
+      schema:
+        type: string
+    Limit:
+      name: limit
+      in: query
+      schema:
+        type: integer
+        default: 50
+    VaultId:
+      name: vaultId
+      in: path
+      required: true
+      schema:
+        type: string
+  schemas:
+    ResponseMeta:
+      type: object
+      required: [requestId, timestamp]
+      properties:
+        requestId: { type: string }
+        timestamp: { type: string, format: date-time }
+    Problem:
+      type: object
+      required: [type, title, status]
+      properties:
+        type: { type: string, format: uri }
+        title: { type: string }
+        status: { type: integer }
+        detail: { type: string }
+    IdentityVault:
+      type: object
+      required: [id, pseudonymId, consortiumId]
+      properties:
+        id: { type: string }
+        pseudonymId: { type: string }
+        consortiumId: { type: string }
+        status: { type: string, enum: [active, erased] }
+    IdentityVaultCreate:
+      type: object
+      required: [pseudonymId, consortiumId]
+      properties:
+        pseudonymId: { type: string }
+        consortiumId: { type: string }
+        lawfulBasis: { type: string }
+    LinkGrant:
+      type: object
+      required: [id, vaultId, participantId, channelId]
+      properties:
+        id: { type: string }
+        vaultId: { type: string }
+        participantId: { type: string }
+        channelId: { type: string }
+        status: { type: string, enum: [active, revoked] }
+    LinkGrantCreate:
+      type: object
+      required: [vaultId, participantId, channelId, lawfulBasis]
+      properties:
+        vaultId: { type: string }
+        participantId: { type: string }
+        channelId: { type: string }
+        lawfulBasis: { type: string }
+    LogicalErasureRequest:
+      type: object
+      required: [vaultId, erasureReason]
+      properties:
+        vaultId: { type: string }
+        erasureReason: { type: string }
+    ErasureCertificate:
+      type: object
+      properties:
+        id: { type: string }
+        vaultId: { type: string }
+        pseudonymId: { type: string }
+        anonymisedAt: { type: string, format: date-time }
+        proofHash: { type: string }
+    ClassificationScanRequest:
+      type: object
+      required: [proposalRef, payloadType]
+      properties:
+        proposalRef: { type: string }
+        payloadType: { type: string, enum: [json, text, pdf, image] }
+        contentBase64: { type: string }
+    ClassificationScan:
+      type: object
+      properties:
+        scanId: { type: string }
+        decision: { type: string, enum: [allow, quarantine, block] }
+        detectedCategories: { type: array, items: { type: string } }
+    Participant:
+      type: object
+      required: [id, name, jurisdiction, gdprRole]
+      properties:
+        id: { type: string }
+        name: { type: string }
+        jurisdiction: { type: string }
+        gdprRole: { type: string, enum: [controller, processor, joint_controller] }
+        fabricIdentityMode: { type: string, enum: [x509_scrubbed, identity_mixer] }
+    ParticipantCreate:
+      type: object
+      required: [name, jurisdiction, gdprRole]
+      properties:
+        name: { type: string }
+        jurisdiction: { type: string }
+        gdprRole: { type: string }
+    LinkAuditReport:
+      type: object
+      properties:
+        period: { type: string }
+        activeGrants: { type: integer }
+        erasuresCompleted: { type: integer }
+        quarantinedScans: { type: integer }
+    DataEnvelopeIdentityVault:
+      type: object
+      required: [data, meta]
+      properties:
+        data: { $ref: "#/components/schemas/IdentityVault" }
+        meta: { $ref: "#/components/schemas/ResponseMeta" }
+    DataEnvelopeLinkGrant:
+      type: object
+      required: [data, meta]
+      properties:
+        data: { $ref: "#/components/schemas/LinkGrant" }
+        meta: { $ref: "#/components/schemas/ResponseMeta" }
+    DataEnvelopeErasureCertificate:
+      type: object
+      required: [data, meta]
+      properties:
+        data: { $ref: "#/components/schemas/ErasureCertificate" }
+        meta: { $ref: "#/components/schemas/ResponseMeta" }
+    DataEnvelopeClassificationScan:
+      type: object
+      required: [data, meta]
+      properties:
+        data: { $ref: "#/components/schemas/ClassificationScan" }
+        meta: { $ref: "#/components/schemas/ResponseMeta" }
+    DataEnvelopeParticipant:
+      type: object
+      required: [data, meta]
+      properties:
+        data: { $ref: "#/components/schemas/Participant" }
+        meta: { $ref: "#/components/schemas/ResponseMeta" }
+    DataEnvelopeLinkAuditReport:
+      type: object
+      required: [data, meta]
+      properties:
+        data: { $ref: "#/components/schemas/LinkAuditReport" }
+        meta: { $ref: "#/components/schemas/ResponseMeta" }
+    ListEnvelopeIdentityVault:
+      type: object
+      required: [data, meta]
+      properties:
+        data:
+          type: object
+          required: [items]
+          properties:
+            items: { type: array, items: { $ref: "#/components/schemas/IdentityVault" } }
+            nextCursor: { type: string }
+        meta: { $ref: "#/components/schemas/ResponseMeta" }
+    ListEnvelopeLinkGrant:
+      type: object
+      required: [data, meta]
+      properties:
+        data:
+          type: object
+          required: [items]
+          properties:
+            items: { type: array, items: { $ref: "#/components/schemas/LinkGrant" } }
+            nextCursor: { type: string }
+        meta: { $ref: "#/components/schemas/ResponseMeta" }
+    ListEnvelopeParticipant:
+      type: object
+      required: [data, meta]
+      properties:
+        data:
+          type: object
+          required: [items]
+          properties:
+            items: { type: array, items: { $ref: "#/components/schemas/Participant" } }
+            nextCursor: { type: string }
+        meta: { $ref: "#/components/schemas/ResponseMeta" }
